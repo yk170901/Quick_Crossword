@@ -31,10 +31,11 @@ namespace QuickCrossword.View
                 {
                     var gg = new TextBox();
 
-                    if (row % 2 == 0)
+                    if (row == 100)
                         gg.IsHitTestVisible = false;
 
-                    gg.TextChanged += new TextChangedEventHandler(this.Text10);
+                    // gg.TextChanged += new TextChangedEventHandler(this.Text10);
+                    gg.GotFocus += new RoutedEventHandler(this.Focused);
 
                     gg.Text = "Text" + row + "" + col;
                     gg.SetValue(Grid.RowProperty, row);
@@ -46,6 +47,12 @@ namespace QuickCrossword.View
                 }
 
             }
+        }
+
+        void Focused(object sender, RoutedEventArgs e)
+        {
+            TextBox textBox = (TextBox)sender;
+            MessageBox.Show(textBox.Name + " : " + textBox.Text);
         }
 
         void Text10(object sender, TextChangedEventArgs e)
@@ -65,6 +72,9 @@ namespace QuickCrossword.View
                     return;
                 case "Text30":
                     MessageBox.Show(textBox.Text + " 30 Text Clicked");
+                    return;
+                default:
+                    MessageBox.Show(textBox.Text);
                     return;
             }
 
