@@ -6,8 +6,7 @@
              xmlns:local="clr-namespace:QuickCrossword.View"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800">
-    <DataGrid x:Name="CrosswordDatagird"
-              >
+    <DataGrid x:Name="CrosswordDatagird">
         <!--SelectionChanged="CrosswordDatagird_SelectionChanged"-->
     </DataGrid>
 </UserControl>

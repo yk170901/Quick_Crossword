@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -16,18 +17,19 @@ using System.Windows.Shapes;
 namespace QuickCrossword.View
 {
     /// <summary>
-    /// Interaction logic for testGrid.xaml
+    /// Interaction logic for FiveXFive.xaml
     /// </summary>
-    public partial class testGrid : UserControl
+    public partial class FiveXFive : UserControl
     {
-
-        public testGrid()
+        public FiveXFive()
         {
             InitializeComponent();
+            // How can I populate a 2D array with a textbox
+            // https://www.codeproject.com/Questions/1012575/How-can-I-populate-a-D-array-with-a-textbox
 
-            for(int row = 0; row < 7; row++)
+            for (int row = 0; row < 5; row++)
             {
-                for(int col = 0; col < 7; col++)
+                for (int col = 0; col < 5; col++)
                 {
                     var gg = new TextBox();
 
@@ -35,25 +37,35 @@ namespace QuickCrossword.View
                         gg.IsHitTestVisible = false;
 
                     // gg.TextChanged += new TextChangedEventHandler(this.Text10);
-                    gg.GotFocus += new RoutedEventHandler(this.Focused);
+                    gg.GotFocus += new RoutedEventHandler(this.TextBoxGotFocus);
+                    gg.LostFocus += new RoutedEventHandler(this.TextBoxLostFocus);
 
                     gg.Text = "Text" + row + "" + col;
                     gg.SetValue(Grid.RowProperty, row);
                     gg.SetValue(Grid.ColumnProperty, col);
                     gg.Name = "Text" + row + "" + col;
-                    gg.SetValue(TagProperty, row+""+col);
+                    gg.SetValue(TagProperty, row + "" + col);
 
-                    testGridGrid.Children.Add(gg);
+                    FiveGrid.Children.Add(gg);
                 }
 
             }
         }
 
-        void Focused(object sender, RoutedEventArgs e)
+        void TextBoxGotFocus(object sender, RoutedEventArgs e)
         {
             TextBox textBox = (TextBox)sender;
-            MessageBox.Show(textBox.Name + " : " + textBox.Text);
+            Debug.WriteLine(textBox.Name + " : Focused : " + textBox.Text);
+            textBox.Background = Brushes.LightBlue;
         }
+
+        void TextBoxLostFocus(object sender, RoutedEventArgs e)
+        {
+            TextBox textBox = (TextBox)sender;
+            Debug.WriteLine(textBox.Name + " : Unfocused : " + textBox.Text);
+            textBox.Background = Brushes.Transparent;
+        }
+
 
         void Text10(object sender, TextChangedEventArgs e)
         {
