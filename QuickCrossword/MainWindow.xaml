@@ -61,7 +61,7 @@
 
             <Grid Grid.Column="0"
                   Margin="10">
-                <view:Crossword x:Name="CrosswordGrid"/>
+                <view:TestCrossword x:Name="CrosswordGrid"/>
             </Grid>
 
             <Grid Grid.Column="1"
