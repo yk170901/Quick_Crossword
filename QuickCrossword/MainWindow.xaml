@@ -1,0 +1,82 @@
+﻿<Window x:Class="QuickCrossword.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:QuickCrossword"
+        xmlns:view="clr-namespace:QuickCrossword.View"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="600" Width="800">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="50"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0">
+            <Button x:Name="SubmitBtn"
+                    Content="제출"
+                    HorizontalAlignment="Left"
+                    Margin="171,0,0,0"
+                    VerticalAlignment="Center"
+                    Width="61"
+                    FontSize="15"
+                    FontWeight="Bold"
+                    Background="DodgerBlue"
+                    Height="34"/>
+            <ComboBox x:Name="GridModeComboBox"
+                      HorizontalAlignment="Left"
+                      Margin="35,0,0,0"
+                      VerticalAlignment="Center"
+                      Width="84"
+                      Height="35"
+                      FontSize="20">    
+                <ComboBoxItem Content="5x5"
+                              IsSelected="True"/>
+                <ComboBoxItem Content="7x7"/>
+                <ComboBoxItem Content="10x10"/>
+            </ComboBox>
+            <Button x:Name="NewPuzzleBtn"
+                    Content="새문제"
+                    HorizontalAlignment="Left"
+                    Margin="605,7,0,0"
+                    VerticalAlignment="Top"
+                    Height="30"
+                Width="59"/>
+            <Button x:Name="ResetBtn"
+                    Content="리셋"
+                    HorizontalAlignment="Left"
+                    Margin="698,7,0,0"
+                    VerticalAlignment="Top"
+                    Height="31"
+                    Background="IndianRed"
+                    Width="48"/>
+        </Grid>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <Grid Grid.Column="0"
+                  Margin="10">
+                <view:Crossword x:Name="CrosswordGrid"/>
+            </Grid>
+
+            <Grid Grid.Column="1"
+                  Margin="20"
+                  Background="Pink">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <view:Clue x:Name="HorizontalClue"
+                           Grid.Row="0"/>
+                <view:Clue x:Name="VerticalClue"
+                           Grid.Row="1"/>
+            </Grid>
+
+        </Grid>
+    </Grid>
+</Window>
