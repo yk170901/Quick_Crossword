@@ -49,7 +49,7 @@ namespace QuickCrossword.View
             CrosswordDatagird.ColumnWidth = 60;
             CrosswordDatagird.RowHeight = 60;
 
-            LoadWordAndClueList();
+            // LoadWordAndClueList();
         }
 
 

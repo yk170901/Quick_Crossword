@@ -55,7 +55,7 @@ namespace QuickCrossword.View
                 for (int j = 0; j < 3; j++)
                     boxes[i, j].Text = data[i,j].ToString();
 
-            lst.ItemsSource = boxes;
+            // lst.ItemsSource = boxes;
         }
     }
 }
