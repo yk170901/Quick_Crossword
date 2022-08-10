@@ -13,6 +13,14 @@ namespace QuickCrossword.Controller
     {
         private char[,]? _matrix;
 
+        private static CrosswordController _instance = null;
+        public static CrosswordController Instance()
+        {
+            if(_instance == null)
+                _instance = new CrosswordController();
+
+            return _instance;
+        }
 
         // PUBLIC
         /// <summary>
@@ -21,10 +29,8 @@ namespace QuickCrossword.Controller
         /// <returns>Completed matrix of crossword</returns>
         public char[,]? GetMatrix()
         {
-
-
-
-            return null;
+            CreateMatrix();
+            return _matrix;
         }
 
         /// <summary>
@@ -61,18 +67,133 @@ namespace QuickCrossword.Controller
             // Will contain tons of methods
             WordAndClue[] WordAndClueArray = GetWACFromDb();
 
-
+            PutWordsInMatrix(WordAndClueArray, 10);
         }
 
         /// <summary>
         /// Put random words of WordAndClue into the matrix to see if they generates whole valid matrix with one another
         /// </summary>
-        private void PutWordsInMatrix(WordAndClue[] WordAndClueArray)
+        private void PutWordsInMatrix(WordAndClue[] WordAndClueArray, int size = 10)
         {
-            List<WordAndClue> OnMatrix = new();
+            _matrix = new char[size, size];
+            Direction direction;
+            // int x, y;
 
-            // 내가
+            bool NearbyClear = false;
+            bool FitInGrid;
 
+
+            foreach (WordAndClue WAC in WordAndClueArray)
+            {
+                string? word = WAC.Word;
+                bool CanPlace = false;
+                bool IsMatchingChar = false;
+
+                // Horizontal try
+                // 이게 fitInGrid 메소드인가
+                for(int y = 0; y < size; y++)
+                {
+                    bool IsPlaced = false;
+                    for (int x = 0; x + word.Length < size; x = x + word.Length )
+                    {
+                        bool Placalble = true;
+
+                        for (int test = x; test < x + word.Length; test++)
+                        {
+                            if (_matrix[y, test] != '\0')
+                            {
+                                Placalble = false;
+                                break;
+                            }
+                        }
+
+
+                        if (!Placalble) continue;
+
+                        NearbyClear = CheckIfNearbyClear();
+
+                        if (!NearbyClear) continue;
+
+                        // place word
+                        for (int i = 0, test = x; i <  word.Length; i++, test++)
+                        {
+                            _matrix[y, test] = word[i];
+                        }
+
+                        IsPlaced = true;
+                        break;
+                    }
+
+                    if (IsPlaced) break;
+                }
+
+
+
+
+                //for (int charAt = 0; charAt < word.Length; charAt++)
+                //{
+                //    // 워드 매치 확인 로직. 나중에 하기.
+                //    //for (int i = 0; i < 7; i++)
+                //    //{
+                //    //    for (int j = 0; j < 7; j++)
+                //    //    {
+                //    //        // 가정 1 : 같은 단어가 나왔다
+
+                //    //        if (_matrix[i, j].Equals(word[charAt]))
+                //    //        {
+                //    //            NearbyClear = CheckIfNearbyClear();
+                //    //            FitInGrid = CheckIfFitInGrid();
+
+                //    //            if (!NearbyClear) continue;
+                //    //            if (!FitInGrid) continue;
+
+                //    //            // IsMatchingChar = true;
+                //    //        }
+
+
+                //    //    }
+                //    //}
+
+                //    // 일치하는 Char가 없다면
+                //    if (!IsMatchingChar)
+                //    {
+
+
+                //    }
+
+
+                //}
+            }
+
+            // grid 형태로 matrix를 보기
+            int dd = 0;
+            foreach (var g in _matrix)
+            {
+                Debug.Write(g);
+                
+                dd++;
+
+                if(dd % size == 0)
+                    Debug.WriteLine(" h");
+            }
+
+        }
+
+        private WordDetail[] SavePlacedWordDetail()
+        {
+            List<WordDetail> PlacedWordDetail = new();
+
+            return PlacedWordDetail.ToArray();
+        }
+
+        private bool CheckIfNearbyClear()
+        {
+            return true;
+        }
+
+        private bool CheckIfFitInGrid()
+        {
+            return true;
         }
 
 

@@ -34,20 +34,20 @@ namespace QuickCrossword.View
             InitializeComponent();
             // DataGrid Approach
 
-            List<FiveGridModel> lsts = new List<FiveGridModel>();
+            //List<FiveGridModel> lsts = new List<FiveGridModel>();
 
-            // 하나의 row들을 집어넣는 것
-            lsts.Add(new FiveGridModel() { First = '#', Second = '#', Third = '#', Fourth = '#', Fifth = '임' });
-            lsts.Add(new FiveGridModel() { First = '#', Second = '#', Third = '#', Fourth = '#', Fifth = '산' });
-            lsts.Add(new FiveGridModel() { First = '#', Second = '잉', Third = '꼬', Fourth = '부', Fifth = '부' });
-            lsts.Add(new FiveGridModel() { First = '핑', Second = '크', Third = '#', Fourth = '금', Fifth = '#' });
-            lsts.Add(new FiveGridModel() { First = '#', Second = '병', Third = '세', Fourth = '#', Fifth = '#' });
+            //// 하나의 row들을 집어넣는 것
+            //lsts.Add(new FiveGridModel() { First = '#', Second = '#', Third = '#', Fourth = '#', Fifth = '임' });
+            //lsts.Add(new FiveGridModel() { First = '#', Second = '#', Third = '#', Fourth = '#', Fifth = '산' });
+            //lsts.Add(new FiveGridModel() { First = '#', Second = '잉', Third = '꼬', Fourth = '부', Fifth = '부' });
+            //lsts.Add(new FiveGridModel() { First = '핑', Second = '크', Third = '#', Fourth = '금', Fifth = '#' });
+            //lsts.Add(new FiveGridModel() { First = '#', Second = '병', Third = '세', Fourth = '#', Fifth = '#' });
 
-            CrosswordDatagird.Items.Clear();
+            //CrosswordDatagird.Items.Clear();
 
-            CrosswordDatagird.ItemsSource = lsts.ToArray();
-            CrosswordDatagird.ColumnWidth = 60;
-            CrosswordDatagird.RowHeight = 60;
+            //CrosswordDatagird.ItemsSource = lsts.ToArray();
+            //CrosswordDatagird.ColumnWidth = 60;
+            //CrosswordDatagird.RowHeight = 60;
 
             // LoadWordAndClueList();
         }

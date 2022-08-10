@@ -1,4 +1,5 @@
-﻿using QuickCrossword.Model;
+﻿using QuickCrossword.Controller;
+using QuickCrossword.Model;
 using QuickCrossword.Model.Db;
 using System;
 using System.Collections.Generic;
@@ -29,6 +30,9 @@ namespace QuickCrossword
         {
             InitializeComponent();
             runCount++;
+
+            CrosswordController.Instance().GetMatrix();
+
         }
 
         private void GridModeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
