@@ -22,28 +22,34 @@ namespace QuickCrossword.Controller
         public char[,]? GetMatrix()
         {
 
+
+
             return null;
         }
 
         /// <summary>
-        /// Loads data of words and clues from Sqlite DB
+        /// Retrieve an random array of 30 words and clues from Sqlite DB
         /// </summary>
-        private void LoadWords()
+        private WordAndClue[] GetWACFromDb()
         {
-            var wordAndClueList = SqliteDataAccess.LoadWordAndClue();
-
             Random rnd = new Random();
+            var WordAndClueList_raw = SqliteDataAccess.LoadWordAndClue();
 
+            List<WordAndClue> WordAndClueList = new();
             // Take 50 random numbers in range of 4 to 214 with NO duplicate
-            var randomNumbers = Enumerable.Range(4, 214).OrderBy(x => rnd.Next()).Take(50).ToArray();
+            var randomNumbers = Enumerable.Range(4, 214).OrderBy(x => rnd.Next()).Take(30).ToArray();
 
+            // Add up 50 random WordAndClue to the list with NO duplicate
             foreach (int rndNum in randomNumbers)
             {
-                var test = wordAndClueList.Select(o => o.Id == rndNum);
-
-                Debug.WriteLine(test);
+                var Enumerable_WAC = WordAndClueList_raw.Where(o => o.Id == rndNum);
+                foreach (var WAC in Enumerable_WAC)
+                {
+                    WordAndClueList.Add(new WordAndClue() { Id = WAC.Id, Word = WAC.Word, Clue = WAC.Clue });
+                }
             }
 
+            return WordAndClueList.ToArray();
         }
 
         // IMPORTANT
@@ -53,6 +59,20 @@ namespace QuickCrossword.Controller
         private void CreateMatrix()
         {
             // Will contain tons of methods
+            WordAndClue[] WordAndClueArray = GetWACFromDb();
+
+
+        }
+
+        /// <summary>
+        /// Put random words of WordAndClue into the matrix to see if they generates whole valid matrix with one another
+        /// </summary>
+        private void PutWordsInMatrix(WordAndClue[] WordAndClueArray)
+        {
+            List<WordAndClue> OnMatrix = new();
+
+            // 내가
+
         }
 
 

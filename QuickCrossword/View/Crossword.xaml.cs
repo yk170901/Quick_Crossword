@@ -52,16 +52,10 @@ namespace QuickCrossword.View
             // LoadWordAndClueList();
         }
 
-        private void LoadWordAndClueList()
-        {
-            wordAndClueList = SqliteDataAccess.LoadWordAndClue();
+        //private void LoadWordAndClueList()
+        //{
+        //    wordAndClueList = SqliteDataAccess.LoadWordAndClue();
 
-            foreach (var dd in wordAndClueList)
-            {
-                Debug.WriteLine(dd.Id);
-                Debug.WriteLine(dd.Word);
-                Debug.WriteLine(dd.Clue);
-            }
-        }
+        //}
     }
 }
