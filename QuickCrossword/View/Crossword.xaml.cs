@@ -32,7 +32,7 @@ namespace QuickCrossword.View
         public Crossword()
         {
             InitializeComponent();
-
+            // DataGrid Approach
 
             List<FiveGridModel> lsts = new List<FiveGridModel>();
 
@@ -49,32 +49,12 @@ namespace QuickCrossword.View
             CrosswordDatagird.ColumnWidth = 60;
             CrosswordDatagird.RowHeight = 60;
 
-            LoadWordAndClueList();
+            // LoadWordAndClueList();
         }
 
-
-        private void LoadWordAndClueList()
-        {
-            wordAndClueList = SqliteDataAccess.LoadWordAndClue();
-
-            foreach (var dd in wordAndClueList)
-            {
-                Debug.WriteLine(dd.Id);
-                Debug.WriteLine(dd.Word);
-                Debug.WriteLine(dd.Clue);
-            }
-        }
-
-        private void PutNumberLabel()
-        {
-            List<WordDetail> displayedWordList = new();
-
-            // HOrizontal & Vertical로 grid를 돌아본 다음에 매칭 워드 있으면 UserControl인 IndexLabel을 그 위에 두기
-
-        }
-
-        //private void CrosswordDatagird_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        //private void LoadWordAndClueList()
         //{
+        //    wordAndClueList = SqliteDataAccess.LoadWordAndClue();
 
         //}
     }

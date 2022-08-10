@@ -14,6 +14,21 @@
         </Grid.RowDefinitions>
 
         <Grid Grid.Row="0">
+            <ComboBox x:Name="GridModeComboBox"
+                      HorizontalAlignment="Left"
+                      Margin="35,0,0,0"
+                      Padding="10 3"
+                      VerticalAlignment="Center"
+                      Width="90"
+                      Height="35"
+                      FontSize="20"
+                      SelectionChanged="GridModeComboBox_SelectionChanged">    
+                <ComboBoxItem Content="5x5"
+                              IsSelected="True"/>
+                <ComboBoxItem Content="7x7"/>
+                <ComboBoxItem Content="10x10"/>
+            </ComboBox>
+            
             <Button x:Name="SubmitBtn"
                     Content="제출"
                     HorizontalAlignment="Left"
@@ -23,34 +38,29 @@
                     FontSize="15"
                     FontWeight="Bold"
                     Background="DodgerBlue"
-                    Height="34"/>
-            <ComboBox x:Name="GridModeComboBox"
-                      HorizontalAlignment="Left"
-                      Margin="35,0,0,0"
-                      VerticalAlignment="Center"
-                      Width="84"
-                      Height="35"
-                      FontSize="20">    
-                <ComboBoxItem Content="5x5"
-                              IsSelected="True"/>
-                <ComboBoxItem Content="7x7"/>
-                <ComboBoxItem Content="10x10"/>
-            </ComboBox>
+                    Height="34"
+                    Click="SubmitBtn_Click"/>
+            
             <Button x:Name="NewPuzzleBtn"
                     Content="새문제"
+                    FontWeight="Bold"
                     HorizontalAlignment="Left"
                     Margin="605,7,0,0"
                     VerticalAlignment="Top"
                     Height="30"
-                Width="59"/>
+                    Width="59"
+                    Click="NewPuzzleBtn_Click"/>
+            
             <Button x:Name="ResetBtn"
                     Content="리셋"
+                    FontWeight="Bold"
                     HorizontalAlignment="Left"
                     Margin="698,7,0,0"
                     VerticalAlignment="Top"
                     Height="31"
                     Background="IndianRed"
-                    Width="48"/>
+                    Width="48"
+                    Click="ResetBtn_Click"/>
         </Grid>
 
         <Grid Grid.Row="1">
@@ -61,12 +71,16 @@
 
             <Grid Grid.Column="0"
                   Margin="10">
-                <view:TestCrossword x:Name="CrosswordGrid"/>
+                <view:FiveXFive x:Name="FiveGrid"
+                                Visibility="Visible"/>
+                <view:SevenXSeven x:Name="SevenGrid"
+                                Visibility="Hidden"/>
+                <view:TenXTen x:Name="TenGrid"
+                                Visibility="Hidden"/>
             </Grid>
 
             <Grid Grid.Column="1"
-                  Margin="20"
-                  Background="Pink">
+                  Margin="20">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="*"/>
                     <RowDefinition Height="*"/>
