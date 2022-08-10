@@ -12,6 +12,7 @@ namespace QuickCrossword.Controller
     public class CrosswordController
     {
         private char[,]? _matrix;
+        GridMode gridSize;
 
         private static CrosswordController _instance = null;
         public static CrosswordController Instance()
@@ -70,6 +71,76 @@ namespace QuickCrossword.Controller
             PutWordsInMatrix(WordAndClueArray, 10);
         }
 
+        private void HorizontallyPutWordByItself(string word, int size)
+        {
+            bool NearbyClear;
+
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x + word.Length < size; x = x + word.Length)
+                {
+                    bool Placalble = true;
+
+                    for (int test = x; test < x + word.Length; test++)
+                    {
+                        if (_matrix[y, test] != '\0')
+                        {
+                            Placalble = false;
+                            break;
+                        }
+                    }
+
+                    if (!Placalble) continue;
+
+                    NearbyClear = CheckIfNearbyClear();
+
+                    if (!NearbyClear) continue;
+
+                    // place word
+                    for (int i = 0, test = x; i < word.Length; i++, test++)
+                        _matrix[y, test] = word[i];
+
+                    goto DONE;
+                }
+            }
+        DONE:;
+        }
+
+        private void VerticallyPutWordByItself(string word, int size)
+        {
+            bool NearbyClear;
+
+            for (int x = 0; x < size; x++)
+            {
+                for (int y = 0; y + word.Length < size; y = y + word.Length)
+                {
+                    bool Placalble = true;
+
+                    for (int test = y; test < y + word.Length; test++)
+                    {
+                        if (_matrix[test, x] != '\0')
+                        {
+                            Placalble = false;
+                            break;
+                        }
+                    }
+
+                    if (!Placalble) continue;
+
+                    NearbyClear = CheckIfNearbyClear();
+
+                    if (!NearbyClear) continue;
+
+                    // place word
+                    for (int i = 0, test = y; i < word.Length; i++, test++)
+                        _matrix[test, x] = word[i];
+
+                    goto DONE;
+                }
+            }
+        DONE:;
+        }
+
         /// <summary>
         /// Put random words of WordAndClue into the matrix to see if they generates whole valid matrix with one another
         /// </summary>
@@ -86,49 +157,17 @@ namespace QuickCrossword.Controller
             foreach (WordAndClue WAC in WordAndClueArray)
             {
                 string? word = WAC.Word;
+
+                int IsolatedWordsNum = 0; // 다른 언어와 엮여서 들어간 게 아니라 빈 공간에 들어간 언어의 개수
                 bool CanPlace = false;
                 bool IsMatchingChar = false;
 
                 // Horizontal try
                 // 이게 fitInGrid 메소드인가
-                for(int y = 0; y < size; y++)
-                {
-                    bool IsPlaced = false;
-                    for (int x = 0; x + word.Length < size; x = x + word.Length )
-                    {
-                        bool Placalble = true;
-
-                        for (int test = x; test < x + word.Length; test++)
-                        {
-                            if (_matrix[y, test] != '\0')
-                            {
-                                Placalble = false;
-                                break;
-                            }
-                        }
 
 
-                        if (!Placalble) continue;
-
-                        NearbyClear = CheckIfNearbyClear();
-
-                        if (!NearbyClear) continue;
-
-                        // place word
-                        for (int i = 0, test = x; i <  word.Length; i++, test++)
-                        {
-                            _matrix[y, test] = word[i];
-                        }
-
-                        IsPlaced = true;
-                        break;
-                    }
-
-                    if (IsPlaced) break;
-                }
-
-
-
+//                HorizontallyPutWordByItself(word, size);
+                VerticallyPutWordByItself(word, size);
 
                 //for (int charAt = 0; charAt < word.Length; charAt++)
                 //{
@@ -169,12 +208,15 @@ namespace QuickCrossword.Controller
             int dd = 0;
             foreach (var g in _matrix)
             {
-                Debug.Write(g);
-                
+                if (g == '\0')
+                    Debug.Write("()");
+                else
+                    Debug.Write(g);
+
                 dd++;
 
                 if(dd % size == 0)
-                    Debug.WriteLine(" h");
+                    Debug.WriteLine("");
             }
 
         }
