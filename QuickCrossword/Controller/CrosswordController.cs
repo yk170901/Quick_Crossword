@@ -80,109 +80,214 @@ namespace QuickCrossword.Controller
             int CellsToCheckNum = GridSize / 3;
             switch (direction)
             {
+                // 이거 그냥 HaveEmptyRightCells(direction, x, y, CellsToCheckNum); 처럼 x y  변환 안 상태로 넘기고, 받은 쪽에서 로직으로 어케 하는 걸로 했으면 굳이 Switch문 안 써도 됐었다.
                 case Direction.Horizontal:
                     // x가 시작 좌표, y는 고정 좌표 (x ~ (x + wordLength -1))
-                    bool rightCellsClear = HaveEmptyRightCells(direction, x + wordLength, y, CellsToCheckNum);
-                    bool leftCellsClear = HaveEmptyLeftCells(direction, x - 1, y, CellsToCheckNum);
-                    bool UpCellsClear = HaveEmptyUpCells(direction, x, y - 1, CellsToCheckNum, wordLength);
-                    bool DownCellsClear = HaveEmptyDownCells(direction, x, y + 1, CellsToCheckNum, wordLength);
-                    bool DiagonalCellsClear = HaveOneEmptyDiagonalCell(direction, x, y, wordLength);
+                    bool rightCellsClear_Hor = HaveEmptyRightCells(direction, x + wordLength, y, CellsToCheckNum);
+                    bool leftCellsClear_Hor = HaveEmptyLeftCells(direction, x - 1, y, CellsToCheckNum);
+                    bool UpCellsClear_Hor = HaveEmptyUpCells(direction, x, y - 1, CellsToCheckNum, wordLength);
+                    bool DownCellsClear_Hor = HaveEmptyDownCells(direction, x, y + 1, CellsToCheckNum, wordLength);
+                    bool DiagonalCellsClear_Hor = HaveOneEmptyDiagonalCell(direction, x, y, wordLength);
 
 
-                    if (rightCellsClear && leftCellsClear && UpCellsClear && DownCellsClear && DiagonalCellsClear) return true;
+                    if (rightCellsClear_Hor && leftCellsClear_Hor && UpCellsClear_Hor && DownCellsClear_Hor && DiagonalCellsClear_Hor) return true;
                     
                     return false;
 
                 case Direction.Vertical:
                     // x가 고정 좌표, y는 시작 좌표 (y ~ (y + wordLength -1))
+                    bool rightCellsClear_Ver = HaveEmptyRightCells(direction, x + 1, y, CellsToCheckNum, wordLength);
+                    bool leftCellsClear_Ver = HaveEmptyLeftCells(direction, x - 1, y, CellsToCheckNum, wordLength);
+                    bool UpCellsClear_Ver = HaveEmptyUpCells(direction, x, y - 1, CellsToCheckNum, wordLength);
+                    bool DownCellsClear_Ver = HaveEmptyDownCells(direction, x, y + 1, CellsToCheckNum, wordLength);
+                    bool DiagonalCellsClear_Ver = HaveOneEmptyDiagonalCell(direction, x, y, wordLength);
 
-                    break;
+
+                    if (rightCellsClear_Ver && leftCellsClear_Ver && UpCellsClear_Ver && DownCellsClear_Ver && DiagonalCellsClear_Ver) return true;
+
+                    return false;
+
             }
 
             return true;
         }
 
 
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="xToCheck">The cell at JUST UP to the first letter of the word</param>
         private bool HaveOneEmptyDiagonalCell(Direction direction, int x, int y, int wordLength)
         {
             switch (direction)
             {
-                case Direction.Horizontal: // Need wordLength
+                case Direction.Horizontal:
 
-                    bool LeftUpDiagonalClear;
-                    bool RightUpDiagonalClear;
-                    bool LeftDownDiagonalClear;
-                    bool RightDownDiagonalClear;
+                    bool LeftUpDiagonalClear_Hor;
+                    bool RightUpDiagonalClear_Hor;
+                    bool LeftDownDiagonalClear_Hor;
+                    bool RightDownDiagonalClear_Hor;
 
                     // Left Up
                     if ((x - 1 < 0) || (y - 1 < 0))
-                        LeftUpDiagonalClear = true;
+                    {
+                        LeftUpDiagonalClear_Hor = true;
+                    }
                     else
+                    {
                         if (_matrix[y - 1, x - 1].Equals('\0'))
-                        LeftUpDiagonalClear = true;
-                    else
-                        LeftUpDiagonalClear = false;
+                        {
+                            LeftUpDiagonalClear_Hor = true;
+                        }
+                        else
+                        {
+                            LeftUpDiagonalClear_Hor = false;
+                        }
+                    }
 
                     // Right Up
                     if ((x + wordLength >= GridSize) || (y - 1 < 0))
-                        RightUpDiagonalClear = true;
+                    {
+                        RightUpDiagonalClear_Hor = true;
+                    }
                     else
+                    {
                         if (_matrix[y - 1, x + wordLength].Equals('\0'))
-                        RightUpDiagonalClear = true;
-                    else
-                        RightUpDiagonalClear = false;
+                        {
+                            RightUpDiagonalClear_Hor = true;
+                        }
+                        else
+                        {
+                            RightUpDiagonalClear_Hor = false;
+                        }
+                    }
 
                     // Left Down
                     if ((x - 1 < 0) || (y + 1 >= GridSize))
-                        LeftDownDiagonalClear = true;
+                    {
+                        LeftDownDiagonalClear_Hor = true;
+                    }
                     else
+                    {
                         if (_matrix[y + 1, x - 1].Equals('\0'))
-                        LeftDownDiagonalClear = true;
-                    else
-                        LeftDownDiagonalClear = false;
+                        {
+                            LeftDownDiagonalClear_Hor = true;
+                        }
+                        else
+                        {
+                            LeftDownDiagonalClear_Hor = false;
+                        }
+                    }
 
                     // Right Down
                     if ((x + wordLength >= GridSize) || (y + 1 >= GridSize))
-                        RightDownDiagonalClear = true;
+                    {
+                        RightDownDiagonalClear_Hor = true;
+                    }
                     else
+                    {
                         if (_matrix[y + 1, x + wordLength].Equals('\0'))
-                        RightDownDiagonalClear = true;
-                    else
-                        RightDownDiagonalClear = false;
+                        {
+                            RightDownDiagonalClear_Hor = true;
+                        }
+                        else
+                        {
+                            RightDownDiagonalClear_Hor = false;
+                        }
+                    }
 
-
-                    if (LeftUpDiagonalClear && RightUpDiagonalClear && LeftDownDiagonalClear && RightDownDiagonalClear) return true;
+                    if (LeftUpDiagonalClear_Hor && RightUpDiagonalClear_Hor && LeftDownDiagonalClear_Hor && RightDownDiagonalClear_Hor) return true;
 
                     return false;
 
                 case Direction.Vertical:
-                    // x가 고정 좌표, y는 시작 좌표 (y ~ (y + wordLength -1))
+                    bool LeftUpDiagonalClear_Ver;
+                    bool RightUpDiagonalClear_Ver;
+                    bool LeftDownDiagonalClear_Ver;
+                    bool RightDownDiagonalClear_Ver;
 
-                    break;
+                    // Left Up
+                    if ((x - 1 < 0) || (y - wordLength < 0))
+                    {
+                        LeftUpDiagonalClear_Ver = true;
+                    }
+                    else
+                    {
+                        if (_matrix[y - wordLength -1, x - 1].Equals('\0'))
+                        {
+                            LeftUpDiagonalClear_Ver = true;
+                        }
+                        else
+                        {
+                            LeftUpDiagonalClear_Ver = false;
+                        }
+                    }
+
+                    // Right Up
+                    if ((x + 1 >= GridSize) || (y - wordLength < 0))
+                    {
+                        RightUpDiagonalClear_Ver = true;
+                    }
+                    else
+                    {
+                        if (_matrix[y - wordLength -1, x + 1].Equals('\0'))
+                        {
+                            RightUpDiagonalClear_Ver = true;
+                        }
+                        else
+                        {
+                            RightUpDiagonalClear_Ver = false;
+                        }
+                    }
+
+                    // Left Down
+                    if ((x - 1 < 0) || (y + 1 >= GridSize))
+                    {
+                        LeftDownDiagonalClear_Ver = true;
+                    }
+                    else
+                    {
+                        if (_matrix[y + 1, x - 1].Equals('\0'))
+                        {
+                            LeftDownDiagonalClear_Ver = true;
+                        }
+                        else
+                        {
+                            LeftDownDiagonalClear_Ver = false;
+                        }
+                    }
+
+                    // Right Down
+                    if ((x + 1 >= GridSize) || (y + 1 >= GridSize))
+                    {
+                        RightDownDiagonalClear_Ver = true;
+                    }
+                    else
+                    {
+                        if (_matrix[y + 1, x + 1].Equals('\0'))
+                        {
+                            RightDownDiagonalClear_Ver = true;
+                        }
+                        else
+                        {
+                            RightDownDiagonalClear_Ver = false;
+                        }
+                    }
+
+
+                    if (LeftUpDiagonalClear_Ver && RightUpDiagonalClear_Ver && LeftDownDiagonalClear_Ver && RightDownDiagonalClear_Ver) return true;
+
+                    return false;
             }
 
             return true;
         }
 
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="xToCheck">The cell at JUST UP to the first letter of the word</param>
-        private bool HaveEmptyUpCells(Direction direction, int xToCheck, int y, int CellsToCheckNum, int wordLength = 0)
+        private bool HaveEmptyUpCells(Direction direction, int x, int y, int CellsToCheckNum, int wordLength = 0)
         {
             switch (direction)
             {
                 case Direction.Horizontal: // Need wordLength
                     // x가 시작 좌표, y는 고정 좌표 (x ~ (x + wordLength -1))
-                    for (int col = y; col > (y - CellsToCheckNum); col--)                   //   >
+                    for (int col = y; col > (y - CellsToCheckNum); col--)     //   >
                     {
-                        for (int row = xToCheck; row < (xToCheck + wordLength); row++)      //   <
+                        for (int row = x; row < (x + wordLength); row++)      //   <
                         {
                             // Grid의 범위를 넘었을 경우
                             if (col < 0) return true;
@@ -193,28 +298,29 @@ namespace QuickCrossword.Controller
                     return true;
 
                 case Direction.Vertical:
-                    // x가 고정 좌표, y는 시작 좌표 (y ~ (y + wordLength -1))
+                    for (int i = y; i > (y - CellsToCheckNum); i--)
+                    {
+                        // Grid의 범위를 넘었을 경우
+                        if (i < 0) return true;
 
-                    break;
+                        if (!_matrix[i, x].Equals('\0')) return false;
+                    }
+                    return true;
             }
 
             return true;
         }
 
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="xToCheck">The cell at JUST UP to the first letter of the word</param>
-        private bool HaveEmptyDownCells(Direction direction, int xToCheck, int y, int CellsToCheckNum, int wordLength = 0)
+        private bool HaveEmptyDownCells(Direction direction, int x, int y, int CellsToCheckNum, int wordLength = 0)
         {
             switch (direction)
             {
                 case Direction.Horizontal: // Need wordLength
                     // x가 시작 좌표, y는 고정 좌표 (x ~ (x + wordLength -1))
-                    for (int col = y; col < (y + CellsToCheckNum); col++)                   //   <
+                    for (int col = y; col < (y + CellsToCheckNum); col++)     //   <
                     {
-                        for (int row = xToCheck; row < (xToCheck + wordLength); row++)      //   <
+                        for (int row = x; row < (x + wordLength); row++)      //   <
                         {
                             // Grid의 범위를 넘었을 경우
                             if (col >= GridSize) return true;
@@ -225,11 +331,15 @@ namespace QuickCrossword.Controller
                     return true;
 
                 case Direction.Vertical:
-                    // x가 고정 좌표, y는 시작 좌표 (y ~ (y + wordLength -1))
+                    for (int i = y; i < (y + CellsToCheckNum); i++)
+                    {
+                        // Grid의 범위를 넘었을 경우
+                        if (i >= GridSize) return true;
 
-                    break;
+                        if (!_matrix[i, x].Equals('\0')) return false;
+                    }
+                    return true;
             }
-
             return true;
         }
 
@@ -237,13 +347,13 @@ namespace QuickCrossword.Controller
         /// 
         /// </summary>
         /// <param name="xToCheck">The cell at JUST RIGHT to the word</param>
-        private bool HaveEmptyRightCells(Direction direction, int xToCheck, int y, int CellsToCheckNum, int wordLength = 0)
+        private bool HaveEmptyRightCells(Direction direction, int x, int y, int CellsToCheckNum, int wordLength = 0)
         {
             switch (direction)
             {
                 case Direction.Horizontal:
                     // x가 시작 좌표, y는 고정 좌표 (x ~ (x + wordLength -1))
-                    for (int i = xToCheck; i <= (xToCheck + CellsToCheckNum); i++)
+                    for (int i = x; i <= (x + CellsToCheckNum); i++)
                     {
                         // Grid의 범위를 넘었을 경우
                         if (i >= GridSize) return true;
@@ -254,8 +364,17 @@ namespace QuickCrossword.Controller
 
                 case Direction.Vertical:
                     // x가 고정 좌표, y는 시작 좌표 (y ~ (y + wordLength -1))
+                    for (int row = x; row < (x + CellsToCheckNum); row++)
+                    {
+                        // Grid의 범위를 넘었을 경우
+                        if (row >= GridSize) return true;
 
-                    break;
+                        for (int col = y; col < (y + wordLength); col++)
+                        {
+                            if (!_matrix[col, row].Equals('\0')) return false;
+                        }
+                    }
+                    return true;
             }
 
             return true;
@@ -265,13 +384,13 @@ namespace QuickCrossword.Controller
         /// 이거 좀 위태하다
         /// </summary>
         /// <param name="xToCheck">The cell at JUST LEFT(x-1) to the word</param>
-        private bool HaveEmptyLeftCells(Direction direction, int xToCheck, int y, int CellsToCheckNum, int wordLength = 0)
+        private bool HaveEmptyLeftCells(Direction direction, int x, int y, int CellsToCheckNum, int wordLength = 0)
         {
             switch (direction)
             {
                 case Direction.Horizontal:
                     // x가 시작 좌표, y는 고정 좌표 ((x-1-(1+CellsToCheckNum)) ~ (x-1))
-                    for (int i = xToCheck; i >= (xToCheck - CellsToCheckNum); i--)
+                    for (int i = x; i >= (x - CellsToCheckNum); i--)
                     {
                         // Grid의 범위를 넘었을 경우
                         if (i < 0) return true;
@@ -282,10 +401,18 @@ namespace QuickCrossword.Controller
 
                 case Direction.Vertical:
                     // x가 고정 좌표, y는 시작 좌표 (y ~ (y + wordLength -1))
+                    for (int row = x; row > (x - CellsToCheckNum); row--)
+                    {
+                        // Grid의 범위를 넘었을 경우
+                        if (row < 0) return true;
 
-                    break;
+                        for (int col = y; col < (y + wordLength); col++)
+                        {
+                            if (!_matrix[col, row].Equals('\0')) return false;
+                        }
+                    }
+                    return true;
             }
-
             return true;
         }
 
@@ -390,15 +517,14 @@ namespace QuickCrossword.Controller
 
         private void SetWordsBeforeLinking(string word, int cnt)
         {
-            HorizontallyPutWordByItself(word);
-            //if (cnt % 2 == 0)
-            //{
-            //    HorizontallyPutWordByItself(word);
-            //}
-            //else
-            //{
-            //    VerticallyPutWordByItself(word);
-            //}
+            if (cnt % 2 == 0)
+            {
+                HorizontallyPutWordByItself(word);
+            }
+            else
+            {
+                VerticallyPutWordByItself(word);
+            }
         }
 
 
@@ -424,6 +550,7 @@ namespace QuickCrossword.Controller
                 bool CanPlace = false;
                 bool IsMatchingChar = false;
 
+                // 이걸 초반 몇몇 단어 뿐만이 아니라 아예 link가 안 된 단어들은 전부 이렇게 하게 하기
                 if (cnt < GridSize - 3)
                     SetWordsBeforeLinking(word, cnt);
 
