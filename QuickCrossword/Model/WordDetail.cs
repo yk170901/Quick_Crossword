@@ -17,5 +17,5 @@ namespace QuickCrossword.Model
         public Direction WordDirection { get; set; }
     }
 
-    public enum Direction { Left, Up, Right, Down, None };
+    public enum Direction { Horizontal, Vertical };
 }

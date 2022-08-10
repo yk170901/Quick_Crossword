@@ -12,7 +12,7 @@ namespace QuickCrossword.Controller
     public class CrosswordController
     {
         private char[,]? _matrix;
-        GridMode gridSize;
+        private static int GridSize;
 
         private static CrosswordController _instance = null;
         public static CrosswordController Instance()
@@ -28,8 +28,9 @@ namespace QuickCrossword.Controller
         /// 
         /// </summary>
         /// <returns>Completed matrix of crossword</returns>
-        public char[,]? GetMatrix()
+        public char[,]? GetMatrix(GridMode gridMode = GridMode.TenXTen)
         {
+            GridSize = (int)gridMode;
             CreateMatrix();
             return _matrix;
         }
@@ -68,16 +69,258 @@ namespace QuickCrossword.Controller
             // Will contain tons of methods
             WordAndClue[] WordAndClueArray = GetWACFromDb();
 
-            PutWordsInMatrix(WordAndClueArray, 10);
+            PutWordsInMatrix(WordAndClueArray);
         }
 
-        private void HorizontallyPutWordByItself(string word, int size)
+        /// <summary>
+        /// Check if at least 2 / 3 / 4 cells around a word is clear
+        /// </summary>
+        private bool CheckIfWideRangeClear(Direction direction, int x, int y, int wordLength)
+        {
+            int CellsToCheckNum = GridSize / 3;
+            switch (direction)
+            {
+                case Direction.Horizontal:
+                    // x가 시작 좌표, y는 고정 좌표 (x ~ (x + wordLength -1))
+                    bool rightCellsClear = HaveEmptyRightCells(direction, x + wordLength, y, CellsToCheckNum);
+                    bool leftCellsClear = HaveEmptyLeftCells(direction, x - 1, y, CellsToCheckNum);
+                    bool UpCellsClear = HaveEmptyUpCells(direction, x, y - 1, CellsToCheckNum, wordLength);
+                    bool DownCellsClear = HaveEmptyDownCells(direction, x, y + 1, CellsToCheckNum, wordLength);
+                    bool DiagonalCellsClear = HaveOneEmptyDiagonalCell(direction, x, y, wordLength);
+
+
+                    if (rightCellsClear && leftCellsClear && UpCellsClear && DownCellsClear && DiagonalCellsClear) return true;
+                    
+                    return false;
+
+                case Direction.Vertical:
+                    // x가 고정 좌표, y는 시작 좌표 (y ~ (y + wordLength -1))
+
+                    break;
+            }
+
+            return true;
+        }
+
+
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="xToCheck">The cell at JUST UP to the first letter of the word</param>
+        private bool HaveOneEmptyDiagonalCell(Direction direction, int x, int y, int wordLength)
+        {
+            switch (direction)
+            {
+                case Direction.Horizontal: // Need wordLength
+
+                    bool LeftUpDiagonalClear;
+                    bool RightUpDiagonalClear;
+                    bool LeftDownDiagonalClear;
+                    bool RightDownDiagonalClear;
+
+                    // Left Up
+                    if ((x - 1 < 0) || (y - 1 < 0))
+                        LeftUpDiagonalClear = true;
+                    else
+                        if (_matrix[y - 1, x - 1].Equals('\0'))
+                        LeftUpDiagonalClear = true;
+                    else
+                        LeftUpDiagonalClear = false;
+
+                    // Right Up
+                    if ((x + wordLength >= GridSize) || (y - 1 < 0))
+                        RightUpDiagonalClear = true;
+                    else
+                        if (_matrix[y - 1, x + wordLength].Equals('\0'))
+                        RightUpDiagonalClear = true;
+                    else
+                        RightUpDiagonalClear = false;
+
+                    // Left Down
+                    if ((x - 1 < 0) || (y + 1 >= GridSize))
+                        LeftDownDiagonalClear = true;
+                    else
+                        if (_matrix[y + 1, x - 1].Equals('\0'))
+                        LeftDownDiagonalClear = true;
+                    else
+                        LeftDownDiagonalClear = false;
+
+                    // Right Down
+                    if ((x + wordLength >= GridSize) || (y + 1 >= GridSize))
+                        RightDownDiagonalClear = true;
+                    else
+                        if (_matrix[y + 1, x + wordLength].Equals('\0'))
+                        RightDownDiagonalClear = true;
+                    else
+                        RightDownDiagonalClear = false;
+
+
+                    if (LeftUpDiagonalClear && RightUpDiagonalClear && LeftDownDiagonalClear && RightDownDiagonalClear) return true;
+
+                    return false;
+
+                case Direction.Vertical:
+                    // x가 고정 좌표, y는 시작 좌표 (y ~ (y + wordLength -1))
+
+                    break;
+            }
+
+            return true;
+        }
+
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="xToCheck">The cell at JUST UP to the first letter of the word</param>
+        private bool HaveEmptyUpCells(Direction direction, int xToCheck, int y, int CellsToCheckNum, int wordLength = 0)
+        {
+            switch (direction)
+            {
+                case Direction.Horizontal: // Need wordLength
+                    // x가 시작 좌표, y는 고정 좌표 (x ~ (x + wordLength -1))
+                    for (int col = y; col > (y - CellsToCheckNum); col--)                   //   >
+                    {
+                        for (int row = xToCheck; row < (xToCheck + wordLength); row++)      //   <
+                        {
+                            // Grid의 범위를 넘었을 경우
+                            if (col < 0) return true;
+
+                            if (!_matrix[col, row].Equals('\0')) return false;
+                        }
+                    }
+                    return true;
+
+                case Direction.Vertical:
+                    // x가 고정 좌표, y는 시작 좌표 (y ~ (y + wordLength -1))
+
+                    break;
+            }
+
+            return true;
+        }
+
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="xToCheck">The cell at JUST UP to the first letter of the word</param>
+        private bool HaveEmptyDownCells(Direction direction, int xToCheck, int y, int CellsToCheckNum, int wordLength = 0)
+        {
+            switch (direction)
+            {
+                case Direction.Horizontal: // Need wordLength
+                    // x가 시작 좌표, y는 고정 좌표 (x ~ (x + wordLength -1))
+                    for (int col = y; col < (y + CellsToCheckNum); col++)                   //   <
+                    {
+                        for (int row = xToCheck; row < (xToCheck + wordLength); row++)      //   <
+                        {
+                            // Grid의 범위를 넘었을 경우
+                            if (col >= GridSize) return true;
+
+                            if (!_matrix[col, row].Equals('\0')) return false;
+                        }
+                    }
+                    return true;
+
+                case Direction.Vertical:
+                    // x가 고정 좌표, y는 시작 좌표 (y ~ (y + wordLength -1))
+
+                    break;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="xToCheck">The cell at JUST RIGHT to the word</param>
+        private bool HaveEmptyRightCells(Direction direction, int xToCheck, int y, int CellsToCheckNum, int wordLength = 0)
+        {
+            switch (direction)
+            {
+                case Direction.Horizontal:
+                    // x가 시작 좌표, y는 고정 좌표 (x ~ (x + wordLength -1))
+                    for (int i = xToCheck; i <= (xToCheck + CellsToCheckNum); i++)
+                    {
+                        // Grid의 범위를 넘었을 경우
+                        if (i >= GridSize) return true;
+
+                        if (!_matrix[y, i].Equals('\0')) return false;
+                    }
+                    return true;
+
+                case Direction.Vertical:
+                    // x가 고정 좌표, y는 시작 좌표 (y ~ (y + wordLength -1))
+
+                    break;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// 이거 좀 위태하다
+        /// </summary>
+        /// <param name="xToCheck">The cell at JUST LEFT(x-1) to the word</param>
+        private bool HaveEmptyLeftCells(Direction direction, int xToCheck, int y, int CellsToCheckNum, int wordLength = 0)
+        {
+            switch (direction)
+            {
+                case Direction.Horizontal:
+                    // x가 시작 좌표, y는 고정 좌표 ((x-1-(1+CellsToCheckNum)) ~ (x-1))
+                    for (int i = xToCheck; i >= (xToCheck - CellsToCheckNum); i--)
+                    {
+                        // Grid의 범위를 넘었을 경우
+                        if (i < 0) return true;
+
+                        if (!_matrix[y, i].Equals('\0')) return false;
+                    }
+                    return true;
+
+                case Direction.Vertical:
+                    // x가 고정 좌표, y는 시작 좌표 (y ~ (y + wordLength -1))
+
+                    break;
+            }
+
+            return true;
+        }
+
+
+        /// <summary>
+        /// Check if cells around the word by one are clear, so that the word can be placed and linked to another word
+        /// </summary>
+        private bool CheckIfNearbyClear(Direction direction, int x, int y, int wordLength)
+        {
+            switch (direction)
+            {
+                case Direction.Horizontal:
+                    // x가 시작 좌표, y는 고정 좌표 (x ~ (x + wordLength -1))
+
+                    break;
+
+                case Direction.Vertical:
+                    // x가 고정 좌표, y는 시작 좌표 (y ~ (y + wordLength -1))
+
+                    break;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// To initialize crossword word placement, horizontally place a word by itself with ENOUGH empty cells around it
+        /// </summary>
+        private void HorizontallyPutWordByItself(string word)
         {
             bool NearbyClear;
 
-            for (int y = 0; y < size; y++)
+            for (int y = 0; y < GridSize; y++)
             {
-                for (int x = 0; x + word.Length < size; x = x + word.Length)
+                for (int x = 0; x + word.Length < GridSize; x = x + word.Length)
                 {
                     bool Placalble = true;
 
@@ -92,8 +335,8 @@ namespace QuickCrossword.Controller
 
                     if (!Placalble) continue;
 
-                    NearbyClear = CheckIfNearbyClear();
-
+                    NearbyClear = CheckIfWideRangeClear(Direction.Horizontal, x, y, word.Length);
+                    Debug.WriteLine(NearbyClear);
                     if (!NearbyClear) continue;
 
                     // place word
@@ -106,13 +349,16 @@ namespace QuickCrossword.Controller
         DONE:;
         }
 
-        private void VerticallyPutWordByItself(string word, int size)
+        /// <summary>
+        /// To initialize crossword word placement, vertically place a word by itself with ENOUGH empty cells around it
+        /// </summary>
+        private void VerticallyPutWordByItself(string word)
         {
             bool NearbyClear;
 
-            for (int x = 0; x < size; x++)
+            for (int x = 0; x < GridSize; x++)
             {
-                for (int y = 0; y + word.Length < size; y = y + word.Length)
+                for (int y = 0; y + word.Length < GridSize; y = y + word.Length)
                 {
                     bool Placalble = true;
 
@@ -127,7 +373,7 @@ namespace QuickCrossword.Controller
 
                     if (!Placalble) continue;
 
-                    NearbyClear = CheckIfNearbyClear();
+                    NearbyClear = CheckIfWideRangeClear(Direction.Vertical, x, y, word.Length);
 
                     if (!NearbyClear) continue;
 
@@ -141,33 +387,45 @@ namespace QuickCrossword.Controller
         DONE:;
         }
 
+
+        private void SetWordsBeforeLinking(string word, int cnt)
+        {
+            HorizontallyPutWordByItself(word);
+            //if (cnt % 2 == 0)
+            //{
+            //    HorizontallyPutWordByItself(word);
+            //}
+            //else
+            //{
+            //    VerticallyPutWordByItself(word);
+            //}
+        }
+
+
         /// <summary>
         /// Put random words of WordAndClue into the matrix to see if they generates whole valid matrix with one another
         /// </summary>
-        private void PutWordsInMatrix(WordAndClue[] WordAndClueArray, int size = 10)
+        private void PutWordsInMatrix(WordAndClue[] WordAndClueArray)
         {
-            _matrix = new char[size, size];
+            _matrix = new char[GridSize, GridSize];
             Direction direction;
             // int x, y;
 
             bool NearbyClear = false;
             bool FitInGrid;
 
-
+            int cnt = -1;
             foreach (WordAndClue WAC in WordAndClueArray)
             {
+                cnt++;
+
                 string? word = WAC.Word;
 
-                int IsolatedWordsNum = 0; // 다른 언어와 엮여서 들어간 게 아니라 빈 공간에 들어간 언어의 개수
                 bool CanPlace = false;
                 bool IsMatchingChar = false;
 
-                // Horizontal try
-                // 이게 fitInGrid 메소드인가
-
-
-//                HorizontallyPutWordByItself(word, size);
-                VerticallyPutWordByItself(word, size);
+                if (cnt < GridSize - 3)
+                    SetWordsBeforeLinking(word, cnt);
 
                 //for (int charAt = 0; charAt < word.Length; charAt++)
                 //{
@@ -215,7 +473,7 @@ namespace QuickCrossword.Controller
 
                 dd++;
 
-                if(dd % size == 0)
+                if(dd % GridSize == 0)
                     Debug.WriteLine("");
             }
 
@@ -227,17 +485,6 @@ namespace QuickCrossword.Controller
 
             return PlacedWordDetail.ToArray();
         }
-
-        private bool CheckIfNearbyClear()
-        {
-            return true;
-        }
-
-        private bool CheckIfFitInGrid()
-        {
-            return true;
-        }
-
 
     }
 }
