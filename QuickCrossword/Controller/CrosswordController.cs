@@ -69,6 +69,92 @@ namespace QuickCrossword.Controller
 
             PutWordsInMatrix(WordAndClueArray);
         }
+
+        /// <summary>
+        /// Check if the board is null as the length of the word
+        /// </summary>
+        /// <param name="boardIdx"></param>
+        /// <param name="wordLength"></param>
+        /// <returns></returns>
+        private bool CheckIfNullAsWordLength(int boardIdx, int wordLength)
+        {
+            // Horizontal
+            for (int i = 1; i < wordLength; i++)
+            {
+                // 배열의 오른쪽 끝단에 막히나 (BoardSize의 배수에 해당하나 확인)
+                // boardIdx + i + 1 = 배열은 0부터 시작하니 +1을 해줌
+                // -1 : 지금 확인하는 배열 index의 전의 index 숫자가 끝자락에 다다른 거면 지금 숫자는 그 범위를 넘어가서 문제인 거니 -1을 해줌) // board 그리드 x 범위 넘어서면
+                if ((boardIdx + i + 1 - 1) % BoardSize == 0
+                    || (boardIdx + i) >= BoardSize* BoardSize
+                    || !_board[boardIdx + i].Equals('\0')) return false;
+            }
+            return true;
+
+        }
+
+        private bool CheckIfNearbyClearForRandomPlacement(int boardIdxInit, int wordLength)
+        {
+            // Horizontal
+            int CellCheckNum = BoardSize / 3;
+
+            int LastWordIdx = boardIdxInit + wordLength - 1;
+
+            for (int CurrentBoardIdx = boardIdxInit; CurrentBoardIdx <= LastWordIdx; CurrentBoardIdx++)
+            {
+                for (int i = 1; i < CellCheckNum; i++)
+                {
+                    // 첫글자
+                    if (CurrentBoardIdx.Equals(boardIdxInit))
+                    {
+                        // 비교하려는 Index가 왼쪽 그리드 끝을 넘어서면 굳이 비교 x
+                        if (CurrentBoardIdx - i % BoardSize == 0
+                            || CurrentBoardIdx - i < 0) continue;
+
+                        // Left
+                        if (!_board[CurrentBoardIdx - i].Equals('\0'))
+                        {
+                            return false;
+                        }
+                    }
+
+                    // 마지막 글자
+                    if (CurrentBoardIdx.Equals(LastWordIdx))
+                    {
+                        // 비교하려는 Index가 오른쪽 그리드 끝을 넘어서면 굳이 비교 x
+                        if (CurrentBoardIdx + i % BoardSize == 0
+                            || CurrentBoardIdx + i >= BoardSize * BoardSize) continue;
+
+                        // Right
+                        if (!_board[CurrentBoardIdx + i].Equals('\0'))
+                        {
+                            return false;
+                        }
+                    }
+
+                    // 비교하려는 Index가 위 그리드 끝을 넘어서면 굳이 비교 x
+                    if (CurrentBoardIdx - (i * BoardSize) < 0) continue;
+
+                    // Up
+                    if (!_board[CurrentBoardIdx - (i * BoardSize)].Equals('\0'))
+                    {
+                        return false;
+                    }
+
+                    // 비교하려는 Index가 아래 그리드 끝을 넘어서면 굳이 비교 x
+                    if (CurrentBoardIdx + (i * BoardSize) >= (BoardSize * BoardSize)) continue;
+
+                    // Down
+                    if (!_board[CurrentBoardIdx + (i * BoardSize)].Equals('\0'))
+                    {
+                        return false;
+                    }
+
+                }
+            }
+
+            return true;
+
+        }
         
 
         /// <summary>
@@ -96,7 +182,30 @@ namespace QuickCrossword.Controller
 
                 if (!Linked) // Put it at random location
                 {
+                    for (int boardIdx = 0; boardIdx < _board.Length; boardIdx++)
+                    {
+                        // 만약 해당 cell이 null이라면 
+                        if (_board[boardIdx].Equals('\0'))
+                        {
+                            bool nullAsLength = CheckIfNullAsWordLength(boardIdx, word.Length);
+                            if (!nullAsLength) continue;
 
+                            bool nearbyClearEnough = CheckIfNearbyClearForRandomPlacement(boardIdx, word.Length);
+                            if (!nearbyClearEnough) continue;
+
+                            bool diagonalClearByOne;
+
+                            for(int wordIdx = 0; wordIdx < word.Length; wordIdx++)
+                            {
+                                _board[boardIdx+ wordIdx] = word[wordIdx];
+                            }
+
+                            break;
+                        }
+
+
+
+                    }
                 }
 
 
