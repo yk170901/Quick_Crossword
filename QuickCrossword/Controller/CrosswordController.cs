@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
 
 namespace QuickCrossword.Controller
 {
@@ -13,6 +14,7 @@ namespace QuickCrossword.Controller
     {
         private char[]? _board;
         private static int BoardSize;
+        private static List<WordDetail> PlacedWordDetail;
 
         private static CrosswordController _instance = null;
         public static CrosswordController Instance()
@@ -29,13 +31,22 @@ namespace QuickCrossword.Controller
         /// <returns>Completed matrix of crossword</returns>
         public char[]? GetBoard(BoardMode boardMode = BoardMode.TenXTen)
         {
+            PlacedWordDetail = new();
+
             BoardSize = (int)boardMode;
 
             WordAndClue[] WordAndClueArray = GetWACFromDb();
 
             PutWordsOnBoard(WordAndClueArray);
 
+            GetRidOfIsolztedWords();
+
             return _board;
+        }
+
+        private void GetRidOfIsolztedWords()
+        {
+
         }
 
         /// <summary>
@@ -99,9 +110,6 @@ namespace QuickCrossword.Controller
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="boardIdxInit"></param>
-        /// <param name="wordLength"></param>
-        /// <returns></returns>
         private bool CheckIfDiagonalClearByOneVertically(int boardIdxInit, int wordLength)
         {
             int LastWordIdx = boardIdxInit + ((wordLength - 1) * BoardSize);
@@ -144,6 +152,8 @@ namespace QuickCrossword.Controller
 
             return true;
         }
+
+
         private bool CheckIfDiagonalClearByOneHorizontally(int boardIdxInit, int wordLength)
         {
             int LastWordIdx = boardIdxInit + wordLength - 1;
@@ -348,6 +358,36 @@ namespace QuickCrossword.Controller
 
         }
         
+        private bool CheckIfNearbyClearHorizontally(Direction direction, int wordLength)
+        {
+            return true;
+        }
+
+        private int GetMatchingCharIndex(char wordChar)
+        {
+            for(int boardIdx = 0; boardIdx < _board.Length; boardIdx++)
+            {
+            }
+
+            return -1;
+        }
+
+        private bool CanLinkToWordOnBoard(string word)
+        {
+            // 글자 단어 하나씩 확인
+            for (int i = 0; i < word.Length; i++)
+            {
+                int MatchingCharIndex = GetMatchingCharIndex(word[i]);
+
+                // 일치하는 글자가 없을 경우
+                if (MatchingCharIndex == -1) continue;
+                Direction direction = Direction.Horizontal;
+                bool NearbyClear = CheckIfNearbyClearHorizontally(direction, word.Length); // Horizontal
+
+            }
+
+            return false;
+        }
 
         /// <summary>
         /// Put random words from WordAndClue into the _board to see if they generates whole valid a board of 1 dimension with one another
@@ -365,23 +405,27 @@ namespace QuickCrossword.Controller
             int cnt = -1;
             foreach (WordAndClue WAC in WordAndClueArray)
             {
+                if(WAC == null)
+                {
+                    MessageBox.Show("Unexpected Error Occured. WAC is null");
+                    continue;
+                }
+
                 cnt++;
 
                 string? word = WAC.Word;
 
-                bool CanPlace = false;
-                bool IsMatchingChar = false;
+                bool LinkedToWordOnBoard = CanLinkToWordOnBoard(word);
 
-
-                if (!Linked) // Put it at random location
+                if (!LinkedToWordOnBoard) // Put it at random location
                 {
                     if (cnt % 2 == 0)
                     {
-                        PlaceHorizontallyRandom(word);
+                        PlaceHorizontallyRandom(word, WAC.Clue);
                     }
                     else
                     {
-                        PlaceVerticallyRandom(word);
+                        PlaceVerticallyRandom(word, WAC.Clue);
                     }
                 }
             }
@@ -405,8 +449,7 @@ namespace QuickCrossword.Controller
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="word"></param>
-        private void PlaceVerticallyRandom(string? word)
+        private void PlaceVerticallyRandom(string word, string clue)
         {
             for (int boardIdx = 0; boardIdx < _board.Length; boardIdx++)
             {
@@ -421,13 +464,24 @@ namespace QuickCrossword.Controller
                     bool diagonalClearByOne = CheckIfDiagonalClearByOneVertically(boardIdx, word.Length);
                     if (!diagonalClearByOne) continue;
 
+                    List<int> IdxsOnBoard = new();
+
                     for (int wordIdx = 0; wordIdx < word.Length; wordIdx++)
                     {
                         _board[boardIdx + (wordIdx * BoardSize)] = word[wordIdx];
+                        IdxsOnBoard.Add(boardIdx + (wordIdx * BoardSize));
                     }
 
-                    Debug.WriteLine("DONE");
-                    break;
+                    PlacedWordDetail.Add(new WordDetail()
+                    {
+                        // Index는 어떻게 할지 생각해보아야겠다.
+                        Word = word,
+                        Clue = clue,
+                        IdxsOnBoard = IdxsOnBoard,
+                        WordDirection = Direction.Vertical
+                    });
+
+                    return;
                 }
             }
         }
@@ -436,8 +490,7 @@ namespace QuickCrossword.Controller
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="word"></param>
-        private void PlaceHorizontallyRandom(string? word)
+        private void PlaceHorizontallyRandom(string word, string clue)
         {
             for (int boardIdx = 0; boardIdx < _board.Length; boardIdx++)
             {
@@ -453,20 +506,36 @@ namespace QuickCrossword.Controller
                     bool diagonalClearByOne = CheckIfDiagonalClearByOneHorizontally(boardIdx, word.Length);
                     if (!diagonalClearByOne) continue;
 
+                    List<int> IdxsOnBoard = new();
+
                     for (int wordIdx = 0; wordIdx < word.Length; wordIdx++)
                     {
                         _board[boardIdx + wordIdx] = word[wordIdx];
+                        IdxsOnBoard.Add(boardIdx + wordIdx);
                     }
 
-                    break;
+
+                    PlacedWordDetail.Add(new WordDetail()
+                    {
+                        // Index는 어떻게 할지 생각해보아야겠다.
+                        Word = word,
+                        Clue = clue,
+                        IdxsOnBoard = IdxsOnBoard,
+                        WordDirection = Direction.Horizontal
+                    });
+
+                    return;
                 }
             }
         }
 
-        private WordDetail[] SavePlacedWordDetail()
+        // PUBLIC
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        public static WordDetail[] GetPlacedWordDetailArray()
         {
-            List<WordDetail> PlacedWordDetail = new();
-
             return PlacedWordDetail.ToArray();
         }
 
