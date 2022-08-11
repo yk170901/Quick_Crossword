@@ -31,7 +31,7 @@ namespace QuickCrossword
             InitializeComponent();
             runCount++;
 
-            CrosswordController.Instance().GetMatrix();
+            CrosswordController.Instance().GetBoard();
 
         }
 
