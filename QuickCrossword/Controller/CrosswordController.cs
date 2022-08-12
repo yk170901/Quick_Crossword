@@ -30,19 +30,31 @@ namespace QuickCrossword.Controller
         /// 
         /// </summary>
         /// <returns>Completed matrix of crossword</returns>
-        public char[]? GetBoard(BoardMode boardMode = BoardMode.FiveXFive)
+        public char[]? GetBoard(BoardMode boardMode = BoardMode.TenXTen)
         {
             PlacedWordDetail = new();
 
             BoardSize = (int)boardMode;
-
             _board = new char[BoardSize * BoardSize];
 
             WordAndClue[] WordAndClueArray = GetWACFromDb();
 
             PutWordsOnBoard(WordAndClueArray);
-
             GetRidOfIsolatedWords();
+
+            byte MinimumWordsOnBoard = 0;
+            switch (boardMode)
+            {
+                case BoardMode.FiveXFive:
+                    MinimumWordsOnBoard = 6;
+                    break;
+                case BoardMode.SevenXSeven:
+                    MinimumWordsOnBoard = 10;
+                    break;
+                case BoardMode.TenXTen:
+                    MinimumWordsOnBoard = 18;
+                    break;
+            }
 
             // grid 형태로 _board를 보기
             int dd = 0;
@@ -58,6 +70,10 @@ namespace QuickCrossword.Controller
                     Debug.WriteLine("");
             }
 
+            if(PlacedWordDetail.Count < MinimumWordsOnBoard)
+            {
+                GetBoard(boardMode); // 자신 부르기
+            }
 
             return _board;
         }
@@ -74,7 +90,6 @@ namespace QuickCrossword.Controller
 
                 foreach (var idx in item.IdxsOnBoard)
                 {
-                    Debug.WriteLine("- - - -- - -  -"+item.Word + "가 방해라 " + _board[idx] + " 단어를 지웠음");
                     _board[idx] = '\0';
                 }
                 DeleteList.Add(item);
@@ -96,7 +111,7 @@ namespace QuickCrossword.Controller
 
             List<WordAndClue> WordAndClueList = new();
             // Take 50 random numbers in range of 4 to 214 with NO duplicate
-            var randomNumbers = Enumerable.Range(4, 214).OrderBy(x => rnd.Next()).Take(200).ToArray();
+            var randomNumbers = Enumerable.Range(4, 214).OrderBy(x => rnd.Next()).Take(210).ToArray();
 
             // Add up 50 random WordAndClue to the list with NO duplicate
             foreach (int rndNum in randomNumbers)
@@ -128,7 +143,7 @@ namespace QuickCrossword.Controller
             return true;
         }
 
-        // IS T?HIS RRIGHT??
+        // Vertical
         /// <summary>
         /// Check if the board is null as the length of the word
         /// </summary>
@@ -238,7 +253,7 @@ namespace QuickCrossword.Controller
         private bool CheckIfNearbyClearEnoughVertically(int boardIdxInit, int wordLength)
         {
             // Horizontal
-            int CellCheckNum = BoardSize / 2;
+            int CellCheckNum = BoardSize / 5;
 
             int LastWordIdx = boardIdxInit + ((wordLength -1) * BoardSize);
 
@@ -318,7 +333,7 @@ namespace QuickCrossword.Controller
         private bool CheckIfNearbyClearEnoughHorizontally(int boardIdxInit, int wordLength)
         {
             // Horizontal
-            int CellCheckNum = BoardSize / 2;
+            int CellCheckNum = BoardSize / 5;
 
             int LastWordIdx = boardIdxInit + wordLength - 1;
 
@@ -552,7 +567,6 @@ namespace QuickCrossword.Controller
                     // 아니면 그 단어 지우고 진행
                     foreach (var idxToDelete in WordInWay.IdxsOnBoard)
                     {
-                        Debug.WriteLine(WordInWay.Word+"가 방해라 "+_board[idxToDelete] + " 단어를 지웠음");
                         _board[idxToDelete] = '\0';
                     }
 
@@ -596,7 +610,6 @@ namespace QuickCrossword.Controller
                     // 아니면 그 단어 지우고 진행
                     foreach (var idxToDelete in WordInWay.IdxsOnBoard)
                     {
-                        Debug.WriteLine(WordInWay.Word + "가 방해라 " + _board[idxToDelete] + " 단어를 지웠음");
                         _board[idxToDelete] = '\0';
                     }
 
@@ -619,22 +632,14 @@ namespace QuickCrossword.Controller
                 // 이미 그 글자에 링크된 다른 글자가 또 있을 경우
                 if(PlacedWordDetail.Count(o => o.IdxsOnBoard.Contains(MatchingCharIdx)) > 1) continue;
 
-                var WordToLink = PlacedWordDetail.Find(o => o.IdxsOnBoard.Contains(MatchingCharIdx));
+                var WordToLinkTo = PlacedWordDetail.Find(o => o.IdxsOnBoard.Contains(MatchingCharIdx));
 
-                foreach(var ddd in PlacedWordDetail.FindAll(o => o.IdxsOnBoard.Contains(MatchingCharIdx)))
-                {
-                    Debug.WriteLine(ddd.Word);
-
-                }
-                Debug.WriteLine("\n" + word + "는 " + WordToLink.Word + "에 링크할 수 있을지 모른다\n");
-
-                switch (WordToLink?.WordDirection)
+                switch (WordToLinkTo?.WordDirection)
                 {
                     case Direction.Horizontal:
 
-                        if (!CheckIfFitInBoardVertically(MatchingCharIdx, word.Length, i)) continue; // 이 자리에 안 맞으면 같은 글자로 다른 자리들도 살피고 싶다.
-
-                        if (!CheckIfNearbyClearVertically(WordToLink.IdxsOnBoard.ToArray(), MatchingCharIdx, word, i)) continue;
+                        if (!CheckIfFitInBoardVertically(MatchingCharIdx, word.Length, i)) continue;
+                        if (!CheckIfNearbyClearVertically(WordToLinkTo.IdxsOnBoard.ToArray(), MatchingCharIdx, word, i)) continue;
 
                         List<int> VerticalIdxsOnBoard = new();
 
@@ -657,17 +662,17 @@ namespace QuickCrossword.Controller
                             Isolated = false
                         });
 
-                        PlacedWordDetail.Find(o => o.Word == WordToLink.Word).Isolated = false;
+                        PlacedWordDetail.Find(o => o.Word == WordToLinkTo.Word).Isolated = false;
 
-                        Debug.WriteLine(PlacedWordDetail.Find(o => o.Word == WordToLink.Word).Word + "는 "+word+"에 의해 독립 여부가"+ PlacedWordDetail.Find(o => o.Word == WordToLink.Word).Isolated+" 되었습니다");
+                        Debug.WriteLine(PlacedWordDetail.Find(o => o.Word == WordToLinkTo.Word).Word + "는 "+word+"에 의해 독립 여부가"+ PlacedWordDetail.Find(o => o.Word == WordToLinkTo.Word).Isolated+" 되었습니다");
 
                         return true;
 
                     case Direction.Vertical:
 
-                        if (!CheckIfFitInBoardHorizontally(MatchingCharIdx, word.Length, i)) continue; // 이 자리에 안 맞으면 같은 글자로 다른 자리들도 살피고 싶다.
+                        if (!CheckIfFitInBoardHorizontally(MatchingCharIdx, word.Length, i)) continue;
 
-                        if (!CheckIfNearbyClearHorizontally(WordToLink.IdxsOnBoard.ToArray(), MatchingCharIdx, word, i)) continue;
+                        if (!CheckIfNearbyClearHorizontally(WordToLinkTo.IdxsOnBoard.ToArray(), MatchingCharIdx, word, i)) continue;
 
                         List<int> HorizontalIdxsOnBoard = new();
 
@@ -690,10 +695,10 @@ namespace QuickCrossword.Controller
                             Isolated = false
                         });
 
-                        PlacedWordDetail.Find(o => o.Word == WordToLink.Word).Isolated = false;
+                        PlacedWordDetail.Find(o => o.Word == WordToLinkTo.Word).Isolated = false;
 
 
-                        Debug.WriteLine(PlacedWordDetail.Find(o => o.Word == WordToLink.Word).Word + "는 " + word + "에 의해 독립 여부가" + PlacedWordDetail.Find(o => o.Word == WordToLink.Word).Isolated + " 되었습니다");
+                        Debug.WriteLine(PlacedWordDetail.Find(o => o.Word == WordToLinkTo.Word).Word + "는 " + word + "에 의해 독립 여부가" + PlacedWordDetail.Find(o => o.Word == WordToLinkTo.Word).Isolated + " 되었습니다");
                         return true;
                 }
 
@@ -737,31 +742,6 @@ namespace QuickCrossword.Controller
             }
         }
 
-        //private int RepeatLinking(WordAndClue[] WordAndClueArray)
-        //{
-        //    int cnt = 0;
-        //    foreach (WordAndClue WAC in WordAndClueArray)
-        //    {
-        //        string word = WAC.Word;
-
-        //        if (PlacedWordDetail.Any(o => o.Word == word))
-        //        {
-        //            continue;
-        //        }
-
-        //        Debug.WriteLine(word + " has potential");
-
-
-        //        bool LinkedToWordOnBoard = CanLinkToWordOnBoard(word, WAC.Clue);
-
-        //        if (LinkedToWordOnBoard)
-        //        {
-        //            cnt++;
-        //        }
-        //    }
-        //    return cnt;
-        //}
-
         // Vertical
         /// <summary>
         /// 
@@ -789,7 +769,6 @@ namespace QuickCrossword.Controller
                         IdxsOnBoard.Add(boardIdx + (wordIdx * BoardSize));
                     }
 
-                    Debug.WriteLine("Random Placement : " + word);
 
                     PlacedWordDetail.Add(new WordDetail()
                     {
@@ -834,8 +813,6 @@ namespace QuickCrossword.Controller
                         _board[boardIdx + wordIdx] = word[wordIdx];
                         IdxsOnBoard.Add(boardIdx + wordIdx);
                     }
-
-                    Debug.WriteLine("Random Placement : " + word);
 
                     PlacedWordDetail.Add(new WordDetail()
                     {
