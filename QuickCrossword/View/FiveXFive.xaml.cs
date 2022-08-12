@@ -1,4 +1,5 @@
-﻿using System;
+﻿using QuickCrossword.Model;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -24,45 +25,66 @@ namespace QuickCrossword.View
         public FiveXFive()
         {
             InitializeComponent();
+        }
+
+        public void GetNewBoard(char[] board)
+        {
             // How can I populate a 2D array with a textbox
             // https://www.codeproject.com/Questions/1012575/How-can-I-populate-a-D-array-with-a-textbox
 
+            int boardIdx = 0;
             for (int row = 0; row < 5; row++)
             {
                 for (int col = 0; col < 5; col++)
                 {
                     var gg = new TextBox();
 
-                    if (row == 100)
-                        gg.IsHitTestVisible = false;
-
                     // gg.TextChanged += new TextChangedEventHandler(this.Text10);
                     gg.GotFocus += new RoutedEventHandler(this.TextBoxGotFocus);
                     gg.LostFocus += new RoutedEventHandler(this.TextBoxLostFocus);
 
-                    gg.Text = "Text" + row + "" + col;
+                    if (board[boardIdx].Equals('\0'))
+                    {
+                        gg.Text = "";
+                        gg.Background = Brushes.DarkGray;
+                        gg.IsHitTestVisible = false;
+                    }
+                    else
+                    {
+                        gg.Text = board[boardIdx].ToString();
+                        gg.FontSize = 30;
+                        gg.HorizontalContentAlignment = HorizontalAlignment.Center;
+                        gg.VerticalContentAlignment = VerticalAlignment.Center;
+                    }
                     gg.SetValue(Grid.RowProperty, row);
                     gg.SetValue(Grid.ColumnProperty, col);
-                    gg.Name = "Text" + row + "" + col;
+                   //  gg.Name = board[boardIdx].ToString();
                     gg.SetValue(TagProperty, row + "" + col);
 
                     FiveGrid.Children.Add(gg);
+
+                    boardIdx++;
                 }
 
             }
         }
 
+
+        public char[] GetUserAnswer()
+        {
+            char[] Answer = new char[(int)BoardMode.FiveXFive * (int)BoardMode.FiveXFive ];
+            return null;
+        }
+
         void TextBoxGotFocus(object sender, RoutedEventArgs e)
         {
             TextBox textBox = (TextBox)sender;
-            Debug.WriteLine(textBox.Name + " : Focused : " + textBox.Text);
             textBox.Background = Brushes.LightBlue;
         }
 
         void TextBoxLostFocus(object sender, RoutedEventArgs e)
         {
             TextBox textBox = (TextBox)sender;
-            Debug.WriteLine(textBox.Name + " : Unfocused : " + textBox.Text);
             textBox.Background = Brushes.Transparent;
         }
 
@@ -89,8 +111,10 @@ namespace QuickCrossword.View
                     MessageBox.Show(textBox.Text);
                     return;
             }
-
         }
+
+
+
 
     }
 }

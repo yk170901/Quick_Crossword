@@ -1,4 +1,5 @@
-﻿using System;
+﻿using QuickCrossword.Model;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -24,5 +25,16 @@ namespace QuickCrossword.View
         {
             InitializeComponent();
         }
+
+        public void GetClueListView(WordDetail[] WordDetailArray)
+        {
+            foreach (var WordDetailItem in WordDetailArray)
+            {
+                ClueListView.Items.Add(new ListViewItem() { Content = WordDetailItem.Index + " - " + WordDetailItem.Clue });
+            }
+        }
+
+        public void 
+
     }
 }

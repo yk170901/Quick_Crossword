@@ -25,17 +25,26 @@ namespace QuickCrossword.Controller
             return _instance;
         }
 
+        // PUBLIC
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        public WordDetail[] GetPlacedWordDetailArray()
+        {
+            return PlacedWordDetail.ToArray();
+        }
+
         // PUBLIC, IMPORTANT
         /// <summary>
         /// 
         /// </summary>
         /// <returns>Completed matrix of crossword</returns>
-        public char[]? GetBoard(BoardMode boardMode = BoardMode.TenXTen)
+        public char[] GetBoard(BoardMode boardMode = BoardMode.TenXTen)
         {
-            PlacedWordDetail = new();
-
             BoardSize = (int)boardMode;
             _board = new char[BoardSize * BoardSize];
+            PlacedWordDetail = new();
 
             WordAndClue[] WordAndClueArray = GetWACFromDb();
 
@@ -56,19 +65,18 @@ namespace QuickCrossword.Controller
                     break;
             }
 
-            // grid 형태로 _board를 보기
-            int dd = 0;
-            Debug.WriteLine("");
-            foreach (var g in _board)
-            {
-                if (g == '\0')
-                    Debug.Write("()");
-                else
-                    Debug.Write(g);
-                dd++;
-                if (dd % BoardSize == 0)
-                    Debug.WriteLine("");
-            }
+            //int dd = 0;
+            //Debug.WriteLine("");
+            //foreach (var g in _board)
+            //{
+            //    if (g == '\0')
+            //        Debug.Write("()");
+            //    else
+            //        Debug.Write(g);
+            //    dd++;
+            //    if (dd % BoardSize == 0)
+            //        Debug.WriteLine("");
+            //}
 
             if(PlacedWordDetail.Count < MinimumWordsOnBoard)
             {
@@ -253,7 +261,7 @@ namespace QuickCrossword.Controller
         private bool CheckIfNearbyClearEnoughVertically(int boardIdxInit, int wordLength)
         {
             // Horizontal
-            int CellCheckNum = BoardSize / 5;
+            int CellCheckNum = BoardSize / 2;
 
             int LastWordIdx = boardIdxInit + ((wordLength -1) * BoardSize);
 
@@ -333,7 +341,7 @@ namespace QuickCrossword.Controller
         private bool CheckIfNearbyClearEnoughHorizontally(int boardIdxInit, int wordLength)
         {
             // Horizontal
-            int CellCheckNum = BoardSize / 5;
+            int CellCheckNum = BoardSize / 2;
 
             int LastWordIdx = boardIdxInit + wordLength - 1;
 
@@ -664,8 +672,6 @@ namespace QuickCrossword.Controller
 
                         PlacedWordDetail.Find(o => o.Word == WordToLinkTo.Word).Isolated = false;
 
-                        Debug.WriteLine(PlacedWordDetail.Find(o => o.Word == WordToLinkTo.Word).Word + "는 "+word+"에 의해 독립 여부가"+ PlacedWordDetail.Find(o => o.Word == WordToLinkTo.Word).Isolated+" 되었습니다");
-
                         return true;
 
                     case Direction.Vertical:
@@ -697,8 +703,6 @@ namespace QuickCrossword.Controller
 
                         PlacedWordDetail.Find(o => o.Word == WordToLinkTo.Word).Isolated = false;
 
-
-                        Debug.WriteLine(PlacedWordDetail.Find(o => o.Word == WordToLinkTo.Word).Word + "는 " + word + "에 의해 독립 여부가" + PlacedWordDetail.Find(o => o.Word == WordToLinkTo.Word).Isolated + " 되었습니다");
                         return true;
                 }
 
@@ -830,15 +834,6 @@ namespace QuickCrossword.Controller
             }
         }
 
-        // PUBLIC
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <returns></returns>
-        public static WordDetail[] GetPlacedWordDetailArray()
-        {
-            return PlacedWordDetail.ToArray();
-        }
 
     }
 }

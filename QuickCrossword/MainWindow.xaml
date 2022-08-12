@@ -6,6 +6,7 @@
         xmlns:local="clr-namespace:QuickCrossword"
         xmlns:view="clr-namespace:QuickCrossword.View"
         mc:Ignorable="d"
+        Loaded="Window_Loaded"
         Title="MainWindow" Height="600" Width="800">
     <Grid>
         <Grid.RowDefinitions>
