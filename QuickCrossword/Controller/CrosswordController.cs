@@ -36,9 +36,14 @@ namespace QuickCrossword.Controller
 
             BoardSize = (int)boardMode;
 
+            int cnt = 0;
+
+        REPEATFORTEST:;
             WordAndClue[] WordAndClueArray = GetWACFromDb();
 
             PutWordsOnBoard(WordAndClueArray);
+            cnt++;
+            if (cnt<10) goto REPEATFORTEST;
 
             GetRidOfIsolatedWords();
 
@@ -228,7 +233,7 @@ namespace QuickCrossword.Controller
                     }
 
                     // 마지막 글자
-                    if (CurrentBoardIdx.Equals(LastWordIdx))
+                   if (CurrentBoardIdx.Equals(LastWordIdx))
                     {
                         // 비교하려는 Index가 아래 그리드 끝을 넘어서면 굳이 비교 x
                         if (CurrentBoardIdx + (i * BoardSize) >= (BoardSize * BoardSize))
@@ -371,61 +376,84 @@ namespace QuickCrossword.Controller
             return -1;
         }
 
-        private bool CheckIfNearbyClearHorizontally(int[] WordToLinkIdxArray, int MatchingCharIdx, int wordLength, int wordIdx)
+        private bool CheckIfNearbyClearHorizontally(int[] wordToLinkIdxArray, int matchingCharIdx, string word, int wordIdx)
         {
             // 만약 단어를 링크하여 넣는다면 그 새로 넣은 단어의 첫글자가 들어갈 자리
-            int Start = MatchingCharIdx - wordIdx;
+            int Start = matchingCharIdx - wordIdx;
 
             List<int> MyPlace = new ();
 
-            for (int i = 0; i < wordLength; i++)
+            for (int i = 0; i < word.Length; i++)
             {
-                Debug.WriteLine("In Nearby Check");
-
                 // Up
                 bool UpClear = false;
                 int Up = Start + i - BoardSize;
-                if (WordToLinkIdxArray.Contains(Up)
+                if (wordToLinkIdxArray.Contains(Up)
                     || Up < 0
                     || _board[Up].Equals('\0')) UpClear = true;
 
                 if (!UpClear) return false;
-                Debug.WriteLine("UpClear");
+
 
                 // Down 
                 bool DownClear = false;
                 int Down = Start + i + BoardSize;
-                if (WordToLinkIdxArray.Contains(Down)
+                if (wordToLinkIdxArray.Contains(Down)
                     || Down >= BoardSize * BoardSize
                     || _board[Down].Equals('\0')) DownClear = true;
 
                 if (!DownClear) return false;
-                Debug.WriteLine("DownClear");
+
+                if (!(Down >= BoardSize * BoardSize))
+                {
+                    Debug.WriteLine("WORD : "+word);
+                    Debug.WriteLine("WORD AT INDEX " + Down + " : " + _board[Down]);
+                    Debug.WriteLine("");
+                    foreach (var gg in wordToLinkIdxArray)
+                    {
+                        Debug.WriteLine("wordToLinkIdxArray down " + gg + _board[gg]);
+                    }
+                }
 
                 // Left
                 bool LeftClear = false;
                 int Left = Start - 1;
-                if (WordToLinkIdxArray.Contains(Left)
+                if (wordToLinkIdxArray.Contains(Left)
                     || MyPlace.Contains(Left)
                     || Left < 0
+                    || _board[Left].Equals(word[i]) // 추가한 거 
                     || _board[Left].Equals('\0')) LeftClear = true;
 
                 if (!LeftClear) return false;
-                Debug.WriteLine("LeftClear");
+
+                // -----------------------------------------------------
+                if (!wordToLinkIdxArray.Contains(Left)
+                    && !MyPlace.Contains(Left)
+                    && !(Left < 0))
+                {
+                    if (_board[Left].Equals(word[i])) Debug.WriteLine("Left Dammmn");
+                }
+
 
                 // Right
                 bool RightClear = false;
                 int Right = Start + 1;
-                if (WordToLinkIdxArray.Contains(Right)
-                    || Right < 0
+                if (wordToLinkIdxArray.Contains(Right)
+                    || Right >= BoardSize * BoardSize
+                    || _board[Right].Equals(word[i]) // 추가한 거 
                     || _board[Right].Equals('\0')) RightClear = true;
                 // || MyPlace.Contains(Right)
 
                 if (!RightClear) return false;
-                Debug.WriteLine("RightClear");
+
+                // -----------------------------------------------------
+                if (!wordToLinkIdxArray.Contains(Right)
+                    && !(Right >= BoardSize * BoardSize))
+                {
+                    if (_board[Right].Equals(word[i])) Debug.WriteLine("Right Dammmn");
+                }
 
                 MyPlace.Add(Start);
-                Start++;
             }
 
             return true;
@@ -438,14 +466,18 @@ namespace QuickCrossword.Controller
 
             for (int i = 0; i < wordLength; i++)
             {
-                if ((Start + i ).Equals(MatchingCharIdx)) continue; // 첫글자는 매칭 단어니까 냅둠
+                int CurrentIdx = Start + i;
 
-                if ((Start + i) % BoardSize == 0
-                    || Start + i < 0
-                    || Start + i >= BoardSize * BoardSize
-                    || !_board[Start + i].Equals('\0')) return false;
+                if (!(CurrentIdx % BoardSize == 0)          // 단어가 그리드를 넘어가지 않고
+                    && CurrentIdx.Equals(MatchingCharIdx))  // 매칭 단어면 냅둠
+                {
+                    continue;
+                }
 
-                Start++;
+                if (CurrentIdx % BoardSize == 0
+                    || CurrentIdx < 0
+                    || CurrentIdx >= BoardSize * BoardSize
+                    || !_board[CurrentIdx].Equals('\0')) return false;
             }
 
             return true;
@@ -469,15 +501,15 @@ namespace QuickCrossword.Controller
                     case Direction.Horizontal:
                         MyDirection = Direction.Vertical;
 
+
                         break;
                     case Direction.Vertical:
 
                         Debug.WriteLine(word);
                         bool FitInBoard = CheckIfFitInBoard(MatchingCharIdx, word.Length, i);
                         if (!FitInBoard) continue; // 이 자리에 안 맞으면 같은 글자로 다른 자리들도 살피고 싶다.
-                        Debug.WriteLine("Fit");
 
-                        bool NearbyClear = CheckIfNearbyClearHorizontally(WordToLink.IdxsOnBoard.ToArray(), MatchingCharIdx, word.Length, i); // Horizontal
+                        bool NearbyClear = CheckIfNearbyClearHorizontally(WordToLink.IdxsOnBoard.ToArray(), MatchingCharIdx, word, i); // Horizontal
                         if (!NearbyClear) continue;
                         Debug.WriteLine("NearbyClear");
 
@@ -592,6 +624,8 @@ namespace QuickCrossword.Controller
                         IdxsOnBoard.Add(boardIdx + (wordIdx * BoardSize));
                     }
 
+                    Debug.WriteLine("Random Placement : " + word);
+
                     PlacedWordDetail.Add(new WordDetail()
                     {
                         // Index는 어떻게 할지 생각해보아야겠다.
@@ -633,7 +667,6 @@ namespace QuickCrossword.Controller
                         _board[boardIdx + wordIdx] = word[wordIdx];
                         IdxsOnBoard.Add(boardIdx + wordIdx);
                     }
-
 
                     PlacedWordDetail.Add(new WordDetail()
                     {
