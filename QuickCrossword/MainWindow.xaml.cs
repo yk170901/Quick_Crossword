@@ -26,6 +26,8 @@ namespace QuickCrossword
     public partial class MainWindow : Window
     {
         private byte runCount = 0;
+        private char[] _board;
+        private WordDetail[] _wordDetailArray;
 
         public MainWindow()
         {
@@ -34,7 +36,14 @@ namespace QuickCrossword
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
             runCount++;
+            GetNewCrossword();
             LoadFiveXFiveBoard();
+        }
+
+        private void GetNewCrossword()
+        {
+            _board = CrosswordController.Instance().GetBoard(BoardMode.FiveXFive);
+            _wordDetailArray = CrosswordController.Instance().GetPlacedWordDetailArray();
         }
 
         private void GridModeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -53,6 +62,7 @@ namespace QuickCrossword
                     TenGrid.Visibility = Visibility.Collapsed;
 
                     LoadFiveXFiveBoard();
+
                     return;
                 case "7x7":
                     FiveGrid.Visibility = Visibility.Collapsed;
@@ -69,37 +79,11 @@ namespace QuickCrossword
 
         private void LoadFiveXFiveBoard()
         {
-            char[] board = CrosswordController.Instance().GetBoard(BoardMode.FiveXFive);
-            var WordDetailArray = CrosswordController.Instance().GetPlacedWordDetailArray();
+            FiveGrid.GetBoard(_board);
+            FiveGrid.LabelIdx(_wordDetailArray, BoardMode.FiveXFive);
 
-            #region 함 보기 결과
-            int dd = 0;
-            Debug.WriteLine("");
-            foreach (var g in board)
-            {
-                if (g == '\0')
-                    Debug.Write("()");
-                else
-                    Debug.Write(g);
-                dd++;
-                if (dd % 5 == 0)
-                    Debug.WriteLine("");
-            }
-
-            foreach (var b in WordDetailArray)
-            {
-                Debug.WriteLine(b.Word);
-
-            }
-            #endregion
-
-            
-            FiveGrid.GetNewBoard(board);
-
-            HorizontalClue.GetClueListView(WordDetailArray.Where(o => o.WordDirection == Direction.Horizontal).ToArray());
-            VerticalClue.GetClueListView(WordDetailArray.Where(o => o.WordDirection == Direction.Vertical).ToArray());
-
-
+            HorizontalClue.GetClueListView(_wordDetailArray.Where(o => o.WordDirection == Direction.Horizontal).ToArray());
+            VerticalClue.GetClueListView(_wordDetailArray.Where(o => o.WordDirection == Direction.Vertical).ToArray());
         }
 
 
@@ -108,12 +92,13 @@ namespace QuickCrossword
 
         private void SubmitBtn_Click(object sender, RoutedEventArgs e)
         {
-
+            FiveGrid.GetUserAnswer();
         }
 
         private void NewPuzzleBtn_Click(object sender, RoutedEventArgs e)
         {
-
+            GetNewCrossword();
+            LoadFiveXFiveBoard();
         }
 
         private void ResetBtn_Click(object sender, RoutedEventArgs e)
@@ -121,5 +106,10 @@ namespace QuickCrossword
 
         }
 
+        private void AnswerBtn_Click(object sender, RoutedEventArgs e)
+        {
+            FiveGrid.GetAnswer();
+            FiveGrid.LabelIdx(_wordDetailArray, BoardMode.FiveXFive);
+        }
     }
 }

@@ -28,13 +28,12 @@ namespace QuickCrossword.View
 
         public void GetClueListView(WordDetail[] WordDetailArray)
         {
-            foreach (var WordDetailItem in WordDetailArray)
+            ClueListView.Items.Clear();
+
+            foreach (var item in WordDetailArray)
             {
-                ClueListView.Items.Add(new ListViewItem() { Content = WordDetailItem.Index + " - " + WordDetailItem.Clue });
+                ClueListView.Items.Add(new ListViewItem() { Content = item.Index + " - " + item.Clue });
             }
         }
-
-        public void 
-
     }
 }

@@ -23,13 +23,13 @@
                       Width="90"
                       Height="35"
                       FontSize="20"
-                      SelectionChanged="GridModeComboBox_SelectionChanged">    
+                      SelectionChanged="GridModeComboBox_SelectionChanged">
                 <ComboBoxItem Content="5x5"
                               IsSelected="True"/>
                 <ComboBoxItem Content="7x7"/>
                 <ComboBoxItem Content="10x10"/>
             </ComboBox>
-            
+
             <Button x:Name="SubmitBtn"
                     Content="제출"
                     HorizontalAlignment="Left"
@@ -41,7 +41,18 @@
                     Background="DodgerBlue"
                     Height="34"
                     Click="SubmitBtn_Click"/>
-            
+
+            <Button x:Name="AnswerBtn"
+                Content="정답 보기"
+                FontWeight="Bold"
+                HorizontalAlignment="Left"
+                Margin="436,0,0,0"
+                VerticalAlignment="Center"
+                Background="Orange"
+                Height="30"
+                Width="84"
+                Click="AnswerBtn_Click"/>
+
             <Button x:Name="NewPuzzleBtn"
                     Content="새문제"
                     FontWeight="Bold"
@@ -51,7 +62,7 @@
                     Height="30"
                     Width="59"
                     Click="NewPuzzleBtn_Click"/>
-            
+
             <Button x:Name="ResetBtn"
                     Content="리셋"
                     FontWeight="Bold"

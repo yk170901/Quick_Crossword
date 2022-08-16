@@ -32,7 +32,8 @@ namespace QuickCrossword.Controller
         /// <returns></returns>
         public WordDetail[] GetPlacedWordDetailArray()
         {
-            return PlacedWordDetail.ToArray();
+            var sortedList = PlacedWordDetail.OrderBy(o => o.Index);
+            return sortedList.ToArray();
         }
 
         // PUBLIC, IMPORTANT
@@ -65,25 +66,43 @@ namespace QuickCrossword.Controller
                     break;
             }
 
-            //int dd = 0;
-            //Debug.WriteLine("");
-            //foreach (var g in _board)
-            //{
-            //    if (g == '\0')
-            //        Debug.Write("()");
-            //    else
-            //        Debug.Write(g);
-            //    dd++;
-            //    if (dd % BoardSize == 0)
-            //        Debug.WriteLine("");
-            //}
+            if(PlacedWordDetail.Count < MinimumWordsOnBoard) GetBoard(boardMode); // 자신 부르기
 
-            if(PlacedWordDetail.Count < MinimumWordsOnBoard)
-            {
-                GetBoard(boardMode); // 자신 부르기
-            }
+            ClearIdxForLabeling();
+            LabelIndex();
 
             return _board;
+        }
+
+        private void ClearIdxForLabeling()
+        {
+            foreach(var item in PlacedWordDetail)
+            {
+                item.Index = -1;
+            }
+        }
+
+        private void LabelIndex()
+        {
+            short label = 1;
+
+            for (int idx = 0; idx < _board.Length; idx++)
+            {
+                if (_board[idx].Equals('\0')) continue;
+
+                var WordsAtIdx = PlacedWordDetail.FindAll(o => o.IdxsOnBoard.Contains(idx));
+
+                bool PlacedIdx = false;
+                foreach (var word in WordsAtIdx)
+                {
+                    if (!word.Index.Equals(-1)) continue;
+                    word.Index = label;
+
+                    PlacedIdx = true;
+                }
+
+                if(PlacedIdx) label++;
+            }
         }
 
         private void GetRidOfIsolatedWords()
@@ -118,8 +137,8 @@ namespace QuickCrossword.Controller
             var WordAndClueList_raw = SqliteDataAccess.LoadWordAndClue();
 
             List<WordAndClue> WordAndClueList = new();
-            // Take 50 random numbers in range of 4 to 214 with NO duplicate
-            var randomNumbers = Enumerable.Range(4, 214).OrderBy(x => rnd.Next()).Take(210).ToArray();
+            // Take 150 random numbers in range of 4 to 214 with NO duplicate
+            var randomNumbers = Enumerable.Range(4, 214).OrderBy(x => rnd.Next()).Take(150).ToArray();
 
             // Add up 50 random WordAndClue to the list with NO duplicate
             foreach (int rndNum in randomNumbers)

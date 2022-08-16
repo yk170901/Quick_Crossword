@@ -22,99 +22,211 @@ namespace QuickCrossword.View
     /// </summary>
     public partial class FiveXFive : UserControl
     {
+        private char[] _board;
+        private string[] _userAnswer;
+        private BoardMode _boardMode;
+
         public FiveXFive()
         {
             InitializeComponent();
         }
 
-        public void GetNewBoard(char[] board)
+        private void SetBoard()
         {
-            // How can I populate a 2D array with a textbox
-            // https://www.codeproject.com/Questions/1012575/How-can-I-populate-a-D-array-with-a-textbox
+            FiveGrid.RowDefinitions.Add(new RowDefinition() { });
+            FiveGrid.RowDefinitions.Add(new RowDefinition() { });
+            FiveGrid.RowDefinitions.Add(new RowDefinition() { });
+            FiveGrid.RowDefinitions.Add(new RowDefinition() { });
+            FiveGrid.RowDefinitions.Add(new RowDefinition() { });
+
+            FiveGrid.ColumnDefinitions.Add(new ColumnDefinition() { });
+            FiveGrid.ColumnDefinitions.Add(new ColumnDefinition() { });
+            FiveGrid.ColumnDefinitions.Add(new ColumnDefinition() { });
+            FiveGrid.ColumnDefinitions.Add(new ColumnDefinition() { });
+            FiveGrid.ColumnDefinitions.Add(new ColumnDefinition() { });
+        }
+
+        // answer 때 넣기
+        public void GetBoard(char[] board)
+        {
+            SetBoard();
+            ///
+            _userAnswer = new string[(int)BoardMode.FiveXFive* (int)BoardMode.FiveXFive];
+            ///
+            FiveGrid.Children.Clear();
+
+            _board = board;
 
             int boardIdx = 0;
             for (int row = 0; row < 5; row++)
             {
                 for (int col = 0; col < 5; col++)
                 {
-                    var gg = new TextBox();
+                    var textBox = new TextBox();
 
-                    // gg.TextChanged += new TextChangedEventHandler(this.Text10);
-                    gg.GotFocus += new RoutedEventHandler(this.TextBoxGotFocus);
-                    gg.LostFocus += new RoutedEventHandler(this.TextBoxLostFocus);
+                    textBox.TextChanged += new TextChangedEventHandler(this.TextChanged);
+                    textBox.GotFocus += new RoutedEventHandler(this.TextBoxGotFocus);
+                    textBox.LostFocus += new RoutedEventHandler(this.TextBoxLostFocus);
 
-                    if (board[boardIdx].Equals('\0'))
+                    textBox.Text = "";
+
+                    if (_board[boardIdx].Equals('\0'))
                     {
-                        gg.Text = "";
-                        gg.Background = Brushes.DarkGray;
-                        gg.IsHitTestVisible = false;
+                        textBox.Background = Brushes.DarkGray;
+                        textBox.IsHitTestVisible = false;
+                        textBox.IsTabStop = false;
                     }
                     else
                     {
-                        gg.Text = board[boardIdx].ToString();
-                        gg.FontSize = 30;
-                        gg.HorizontalContentAlignment = HorizontalAlignment.Center;
-                        gg.VerticalContentAlignment = VerticalAlignment.Center;
+                        textBox.FontSize = 30;
+                        textBox.HorizontalContentAlignment = HorizontalAlignment.Center;
+                        textBox.VerticalContentAlignment = VerticalAlignment.Center;
                     }
-                    gg.SetValue(Grid.RowProperty, row);
-                    gg.SetValue(Grid.ColumnProperty, col);
-                   //  gg.Name = board[boardIdx].ToString();
-                    gg.SetValue(TagProperty, row + "" + col);
+                    textBox.SetValue(Grid.RowProperty, row);
+                    textBox.SetValue(Grid.ColumnProperty, col);
 
-                    FiveGrid.Children.Add(gg);
+                    FiveGrid.Children.Add(textBox);
 
                     boardIdx++;
                 }
-
             }
         }
 
-
-        public char[] GetUserAnswer()
+        public void GetAnswer()
         {
-            char[] Answer = new char[(int)BoardMode.FiveXFive * (int)BoardMode.FiveXFive ];
-            return null;
+            FiveGrid.Children.Clear();
+
+            int boardIdx = 0;
+            for (int row = 0; row < 5; row++)
+            {
+                for (int col = 0; col < 5; col++)
+                {
+                    var textBox = new TextBox();
+
+                    textBox.Text = "";
+                    textBox.IsHitTestVisible = false;
+
+                    if (_board[boardIdx].Equals('\0'))
+                    {
+                        textBox.Background = Brushes.DarkGray;
+                    }
+                    else
+                    {
+                        textBox.Text = _board[boardIdx].ToString();
+                        textBox.FontSize = 30;
+                        textBox.Foreground = Brushes.DarkRed;
+                        textBox.HorizontalContentAlignment = HorizontalAlignment.Center;
+                        textBox.VerticalContentAlignment = VerticalAlignment.Center;
+                    }
+                    textBox.SetValue(Grid.RowProperty, row);
+                    textBox.SetValue(Grid.ColumnProperty, col);
+
+                    FiveGrid.Children.Add(textBox);
+
+                    boardIdx++;
+                }
+            }
         }
 
-        void TextBoxGotFocus(object sender, RoutedEventArgs e)
+        public void LabelIdx(WordDetail[] wordDetailArray, BoardMode boardMode)
+        {
+            var boardModeNum = (int)boardMode;
+
+            foreach(var wordDetail in wordDetailArray)
+            {
+                var idxToPlaceLabel = wordDetail.IdxsOnBoard.Min();
+
+                var col = idxToPlaceLabel % boardModeNum;
+                var row = idxToPlaceLabel / boardModeNum;
+
+                var label = new Label();
+
+                label.Content = wordDetail.Index;
+                label.FontSize = 20;
+                label.Foreground = Brushes.DeepSkyBlue;
+                label.Width = 20;
+                label.HorizontalAlignment = HorizontalAlignment.Left;
+                label.Height = 40;
+                label.VerticalAlignment = VerticalAlignment.Top;
+                label.SetValue(Grid.ColumnProperty, col);
+                label.SetValue(Grid.RowProperty, row);
+
+                FiveGrid.Children.Add(label);
+            }
+        }
+
+        public void GetUserAnswer()
+        {
+            FiveGrid.Children.Clear();
+
+            int boardIdx = 0;
+            for (int row = 0; row < 5; row++)
+            {
+                for (int col = 0; col < 5; col++)
+                {
+                    var textBox = new TextBox();
+
+                    textBox.TextChanged += new TextChangedEventHandler(this.TextChanged);
+                    textBox.GotFocus += new RoutedEventHandler(this.TextBoxGotFocus);
+                    textBox.LostFocus += new RoutedEventHandler(this.TextBoxLostFocus);
+
+                    if (_board[boardIdx].Equals('\0'))
+                    {
+                        textBox.Background = Brushes.DarkGray;
+                        textBox.IsHitTestVisible = false;
+                        textBox.IsTabStop = false;
+                    }
+                    else
+                    {
+                        textBox.Text = _userAnswer[boardIdx];
+                        textBox.FontSize = 30;
+                        textBox.HorizontalContentAlignment = HorizontalAlignment.Center;
+                        textBox.VerticalContentAlignment = VerticalAlignment.Center;
+
+                        if (_board[boardIdx].ToString() == _userAnswer[boardIdx])
+                        {
+                            textBox.Foreground = Brushes.SkyBlue;
+                        }
+                        else
+                        {
+                            textBox.Background = Brushes.IndianRed;
+                        }
+
+                    }
+                    textBox.SetValue(Grid.RowProperty, row);
+                    textBox.SetValue(Grid.ColumnProperty, col);
+
+                    FiveGrid.Children.Add(textBox);
+
+                    boardIdx++;
+                }
+            }
+        }
+
+        private void TextBoxGotFocus(object sender, RoutedEventArgs e)
         {
             TextBox textBox = (TextBox)sender;
             textBox.Background = Brushes.LightBlue;
         }
 
-        void TextBoxLostFocus(object sender, RoutedEventArgs e)
+        private void TextBoxLostFocus(object sender, RoutedEventArgs e)
         {
             TextBox textBox = (TextBox)sender;
             textBox.Background = Brushes.Transparent;
         }
 
 
-        void Text10(object sender, TextChangedEventArgs e)
+        private void TextChanged(object sender, TextChangedEventArgs e)
         {
             TextBox textBox = (TextBox)sender;
-            string content = textBox.Name;
-            switch (content)
-            {
-                case "Text00":
-                    MessageBox.Show(textBox.Text + " 00 Text Clicked");
-                    return;
-                case "Text10":
-                    MessageBox.Show(textBox.Text + " 10 Text Clicked");
-                    return;
-                case "Text20":
-                    MessageBox.Show(textBox.Text + " 20 Text Clicked");
-                    return;
-                case "Text30":
-                    MessageBox.Show(textBox.Text + " 30 Text Clicked");
-                    return;
-                default:
-                    MessageBox.Show(textBox.Text);
-                    return;
-            }
+            string text = textBox.Text;
+
+            var row = (int)textBox.GetValue(Grid.RowProperty);
+            var col = (int)textBox.GetValue(Grid.ColumnProperty);
+
+            int OneDimensionChar = (row * (int)BoardMode.FiveXFive) + col;
+            _userAnswer[OneDimensionChar] = text;
         }
-
-
-
 
     }
 }

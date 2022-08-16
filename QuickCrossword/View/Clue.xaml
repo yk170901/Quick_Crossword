@@ -6,7 +6,5 @@
              xmlns:local="clr-namespace:QuickCrossword.View"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800">
-    <ListView x:Name="ClueListView">
-
-    </ListView>
+    <ListView x:Name="ClueListView"/>
 </UserControl>
