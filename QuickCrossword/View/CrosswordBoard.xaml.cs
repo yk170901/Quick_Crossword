@@ -16,19 +16,53 @@ using System.Windows.Shapes;
 
 namespace QuickCrossword.View
 {
+    public enum NewBoard
+    {
+        Setting,
+        Answer,
+        Submit
+    }
+
     /// <summary>
     /// Interaction logic for CrosswordBoard.xaml
     /// </summary>
     public partial class CrosswordBoard : UserControl
     {
         private char[] _board;
-        private string[] _userAnswer;
         private int _boardModeNum;
+        private string[] _userAnswer;
 
         public CrosswordBoard()
         {
             InitializeComponent();
         }
+
+        #region TextBox Related Event
+        private void TextBoxGotFocus(object sender, RoutedEventArgs e)
+        {
+            TextBox textBox = (TextBox)sender;
+            textBox.Background = Brushes.LightBlue;
+        }
+
+        private void TextBoxLostFocus(object sender, RoutedEventArgs e)
+        {
+            TextBox textBox = (TextBox)sender;
+            textBox.Background = Brushes.Transparent;
+        }
+
+        private void TextChanged(object sender, TextChangedEventArgs e)
+        {
+            TextBox textBox = (TextBox)sender;
+            string text = textBox.Text;
+
+            var row = (int)textBox.GetValue(Grid.RowProperty);
+            var col = (int)textBox.GetValue(Grid.ColumnProperty);
+
+            int OneDimensionChar = (row * _boardModeNum) + col;
+            _userAnswer[OneDimensionChar] = text;
+        }
+        #endregion
+
         private void SetBoard(char[] board, BoardMode boardMode)
         {
             _board = board;
@@ -50,12 +84,59 @@ namespace QuickCrossword.View
 
             SetBoard(board, boardMode);
 
-            PlaceTextBoxes();
+            PlaceTextBoxes(NewBoard.Setting);
         }
 
-        private void PlaceTextBoxes()
+        public void GetAnswer()
+        {
+            CrosswordGrid.Children.Clear();
+            PlaceTextBoxes(NewBoard.Answer);
+        }
+
+        public void ResetBoard()
+        {
+            CrosswordGrid.Children.Clear();
+            PlaceTextBoxes(NewBoard.Setting);
+        }
+
+        public void GetUserAnswer()
+        {
+            CrosswordGrid.Children.Clear();
+            PlaceTextBoxes(NewBoard.Submit);
+        }
+
+        private void AnswerSetting(TextBox textBox, int boardIdx)
+        {
+            if (_board[boardIdx].ToString() == _userAnswer[boardIdx])
+            {
+                textBox.Foreground = Brushes.SkyBlue;
+            }
+            else
+            {
+                textBox.Foreground = Brushes.Red;
+            }
+
+            // 이걸 하면 TextChanged 이벤트로 userAnswer도 업데이트 되기 때문에 위의 정답 체크 후 Text를 바꾸어야 한다
+            textBox.Text = _board[boardIdx].ToString();
+        }
+
+        private void UserAnswerSubmit(TextBox textBox, int boardIdx)
+        {
+            textBox.Text = _userAnswer[boardIdx];
+            if (_board[boardIdx].ToString() == _userAnswer[boardIdx])
+            {
+                textBox.Foreground = Brushes.SkyBlue;
+            }
+            else
+            {
+                textBox.Background = Brushes.IndianRed;
+            }
+        }
+
+        private void PlaceTextBoxes(NewBoard purpose)
         {
             int boardIdx = 0;
+            int fontSize = 150 / _boardModeNum;
             for (int row = 0; row < _boardModeNum; row++)
             {
                 for (int col = 0; col < _boardModeNum; col++)
@@ -63,6 +144,10 @@ namespace QuickCrossword.View
                     var textBox = new TextBox();
 
                     textBox.Text = "";
+                    textBox.FontSize = fontSize;
+                    textBox.HorizontalContentAlignment = HorizontalAlignment.Center;
+                    textBox.VerticalContentAlignment = VerticalAlignment.Center;
+
                     textBox.TextChanged += new TextChangedEventHandler(this.TextChanged);
                     textBox.GotFocus += new RoutedEventHandler(this.TextBoxGotFocus);
                     textBox.LostFocus += new RoutedEventHandler(this.TextBoxLostFocus);
@@ -78,10 +163,14 @@ namespace QuickCrossword.View
                     }
                     else
                     {
-                        // textBox.Text = _board[boardIdx].ToString();
-                        textBox.FontSize = 30;
-                        textBox.HorizontalContentAlignment = HorizontalAlignment.Center;
-                        textBox.VerticalContentAlignment = VerticalAlignment.Center;
+                        if (purpose.Equals(NewBoard.Answer))
+                        {
+                            AnswerSetting(textBox, boardIdx);
+                        }
+                        else if (purpose.Equals(NewBoard.Submit))
+                        {
+                            UserAnswerSubmit(textBox, boardIdx);
+                        }
                     }
 
                     CrosswordGrid.Children.Add(textBox);
@@ -91,64 +180,21 @@ namespace QuickCrossword.View
             }
         }
 
-        private void AnswerSetting(TextBox textBox)
+        public void LabelIdx(WordDetail[] wordDetailArray)
         {
-
-        }
-
-        public void GetAnswer()
-        {
-            CrosswordGrid.Children.Clear();
-
-            int boardIdx = 0;
-            for (int row = 0; row < _boardModeNum; row++)
-            {
-                for (int col = 0; col < _boardModeNum; col++)
-                {
-                    var textBox = new TextBox();
-
-                    textBox.IsHitTestVisible = false;
-
-                    if (_board[boardIdx].Equals('\0'))
-                    {
-                        textBox.Text = "";
-                        textBox.Background = Brushes.DarkGray;
-                    }
-                    else
-                    {
-                        textBox.Text = _board[boardIdx].ToString();
-                        textBox.FontSize = 30;
-                        textBox.Foreground = Brushes.DarkRed;
-                        textBox.HorizontalContentAlignment = HorizontalAlignment.Center;
-                        textBox.VerticalContentAlignment = VerticalAlignment.Center;
-                    }
-                    textBox.SetValue(Grid.RowProperty, row);
-                    textBox.SetValue(Grid.ColumnProperty, col);
-
-                    CrosswordGrid.Children.Add(textBox);
-
-                    boardIdx++;
-                }
-            }
-        }
-
-        public void LabelIdx(WordDetail[] wordDetailArray, BoardMode boardMode)
-        {
-            var boardModeNum = (int)boardMode;
-
             foreach (var wordDetail in wordDetailArray)
             {
                 var idxToPlaceLabel = wordDetail.IdxsOnBoard.Min();
 
-                var col = idxToPlaceLabel % boardModeNum;
-                var row = idxToPlaceLabel / boardModeNum;
+                var col = idxToPlaceLabel % _boardModeNum;
+                var row = idxToPlaceLabel / _boardModeNum;
 
                 var label = new Label();
 
                 label.Content = wordDetail.Index;
-                label.FontSize = 20;
+                label.FontSize = 15;
                 label.Foreground = Brushes.DeepSkyBlue;
-                label.Width = 20;
+                label.Width = 30;
                 label.HorizontalAlignment = HorizontalAlignment.Left;
                 label.Height = 40;
                 label.VerticalAlignment = VerticalAlignment.Top;
@@ -158,81 +204,5 @@ namespace QuickCrossword.View
                 CrosswordGrid.Children.Add(label);
             }
         }
-
-        public void GetUserAnswer()
-        {
-            CrosswordGrid.Children.Clear();
-
-            int boardIdx = 0;
-            for (int row = 0; row < _boardModeNum; row++)
-            {
-                for (int col = 0; col < _boardModeNum; col++)
-                {
-                    var textBox = new TextBox();
-
-                    textBox.TextChanged += new TextChangedEventHandler(this.TextChanged);
-                    textBox.GotFocus += new RoutedEventHandler(this.TextBoxGotFocus);
-                    textBox.LostFocus += new RoutedEventHandler(this.TextBoxLostFocus);
-
-                    if (_board[boardIdx].Equals('\0'))
-                    {
-                        textBox.Background = Brushes.DarkGray;
-                        textBox.IsHitTestVisible = false;
-                        textBox.IsTabStop = false;
-                    }
-                    else
-                    {
-                        textBox.Text = _userAnswer[boardIdx];
-                        textBox.FontSize = 30;
-                        textBox.HorizontalContentAlignment = HorizontalAlignment.Center;
-                        textBox.VerticalContentAlignment = VerticalAlignment.Center;
-
-                        if (_board[boardIdx].ToString() == _userAnswer[boardIdx])
-                        {
-                            textBox.Foreground = Brushes.SkyBlue;
-                        }
-                        else
-                        {
-                            textBox.Background = Brushes.IndianRed;
-                        }
-
-                    }
-                    textBox.SetValue(Grid.RowProperty, row);
-                    textBox.SetValue(Grid.ColumnProperty, col);
-
-                    CrosswordGrid.Children.Add(textBox);
-
-                    boardIdx++;
-                }
-            }
-        }
-
-
-
-
-        private void TextBoxGotFocus(object sender, RoutedEventArgs e)
-        {
-            TextBox textBox = (TextBox)sender;
-            textBox.Background = Brushes.LightBlue;
-        }
-
-        private void TextBoxLostFocus(object sender, RoutedEventArgs e)
-        {
-            TextBox textBox = (TextBox)sender;
-            textBox.Background = Brushes.Transparent;
-        }
-
-        private void TextChanged(object sender, TextChangedEventArgs e)
-        {
-            TextBox textBox = (TextBox)sender;
-            string text = textBox.Text;
-
-            var row = (int)textBox.GetValue(Grid.RowProperty);
-            var col = (int)textBox.GetValue(Grid.ColumnProperty);
-
-            int OneDimensionChar = (row * (int)BoardMode.FiveXFive) + col;
-            _userAnswer[OneDimensionChar] = text;
-        }
-
     }
 }

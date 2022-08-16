@@ -39,7 +39,7 @@ namespace QuickCrossword
             _boardMode = BoardMode.FiveXFive;
             runCount++;
             GetNewCrossword();
-            LoadFiveXFiveBoard(_boardMode);
+            LoadBoard(_boardMode);
         }
 
         private void GetNewCrossword()
@@ -70,39 +70,45 @@ namespace QuickCrossword
             }
 
             GetNewCrossword();
-            LoadFiveXFiveBoard(_boardMode);
+            LoadBoard(_boardMode);
         }
 
-        private void LoadFiveXFiveBoard(BoardMode boardMode)
+        private void LoadBoard(BoardMode boardMode)
         {
             CrosswordGrid.GetBoard(_board, boardMode);
-            CrosswordGrid.LabelIdx(_wordDetailArray, _boardMode);
+            CrosswordGrid.LabelIdx(_wordDetailArray);
 
             HorizontalClue.GetClueListView(_wordDetailArray.Where(o => o.WordDirection == Direction.Horizontal).ToArray());
             VerticalClue.GetClueListView(_wordDetailArray.Where(o => o.WordDirection == Direction.Vertical).ToArray());
-        }
 
-
-        private void SubmitBtn_Click(object sender, RoutedEventArgs e)
-        {
-            CrosswordGrid.GetUserAnswer();
+            SubmitBtn.IsEnabled = true;
+            ResetBtn.IsEnabled = true;
         }
 
         private void NewPuzzleBtn_Click(object sender, RoutedEventArgs e)
         {
             GetNewCrossword();
-            LoadFiveXFiveBoard(_boardMode);
+            LoadBoard(_boardMode);
+        }
+        private void AnswerBtn_Click(object sender, RoutedEventArgs e)
+        {
+            CrosswordGrid.GetAnswer();
+            CrosswordGrid.LabelIdx(_wordDetailArray);
+            SubmitBtn.IsEnabled = false;
+            ResetBtn.IsEnabled = false;
+        }
+
+        private void SubmitBtn_Click(object sender, RoutedEventArgs e)
+        {
+            CrosswordGrid.GetUserAnswer();
+            CrosswordGrid.LabelIdx(_wordDetailArray);
         }
 
         private void ResetBtn_Click(object sender, RoutedEventArgs e)
         {
-
+            CrosswordGrid.ResetBoard();
+            CrosswordGrid.LabelIdx(_wordDetailArray);
         }
 
-        private void AnswerBtn_Click(object sender, RoutedEventArgs e)
-        {
-            CrosswordGrid.GetAnswer();
-            CrosswordGrid.LabelIdx(_wordDetailArray, _boardMode);
-        }
     }
 }
