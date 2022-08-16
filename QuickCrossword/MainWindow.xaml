@@ -83,12 +83,7 @@
 
             <Grid Grid.Column="0"
                   Margin="10">
-                <view:FiveXFive x:Name="FiveGrid"
-                                Visibility="Visible"/>
-                <view:SevenXSeven x:Name="SevenGrid"
-                                Visibility="Hidden"/>
-                <view:TenXTen x:Name="TenGrid"
-                                Visibility="Hidden"/>
+                <view:CrosswordBoard x:Name="CrosswordGrid"/>
             </Grid>
 
             <Grid Grid.Column="1"

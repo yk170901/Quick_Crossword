@@ -28,6 +28,7 @@ namespace QuickCrossword
         private byte runCount = 0;
         private char[] _board;
         private WordDetail[] _wordDetailArray;
+        private BoardMode _boardMode;
 
         public MainWindow()
         {
@@ -35,14 +36,15 @@ namespace QuickCrossword
         }
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
+            _boardMode = BoardMode.FiveXFive;
             runCount++;
             GetNewCrossword();
-            LoadFiveXFiveBoard();
+            LoadFiveXFiveBoard(_boardMode);
         }
 
         private void GetNewCrossword()
         {
-            _board = CrosswordController.Instance().GetBoard(BoardMode.FiveXFive);
+            _board = CrosswordController.Instance().GetBoard(_boardMode);
             _wordDetailArray = CrosswordController.Instance().GetPlacedWordDetailArray();
         }
 
@@ -57,48 +59,39 @@ namespace QuickCrossword
             switch (selectedMode)
             {
                 case "5x5":
-                    FiveGrid.Visibility = Visibility.Visible;
-                    SevenGrid.Visibility = Visibility.Collapsed;
-                    TenGrid.Visibility = Visibility.Collapsed;
-
-                    LoadFiveXFiveBoard();
-
-                    return;
+                    _boardMode = BoardMode.FiveXFive;
+                    break;
                 case "7x7":
-                    FiveGrid.Visibility = Visibility.Collapsed;
-                    SevenGrid.Visibility = Visibility.Visible;
-                    TenGrid.Visibility = Visibility.Collapsed;
-                    return;
+                    _boardMode = BoardMode.SevenXSeven;
+                    break;
                 case "10x10":
-                    FiveGrid.Visibility = Visibility.Collapsed;
-                    SevenGrid.Visibility = Visibility.Collapsed;
-                    TenGrid.Visibility = Visibility.Visible;
-                    return;
+                    _boardMode = BoardMode.TenXTen;
+                    break;
             }
+
+            GetNewCrossword();
+            LoadFiveXFiveBoard(_boardMode);
         }
 
-        private void LoadFiveXFiveBoard()
+        private void LoadFiveXFiveBoard(BoardMode boardMode)
         {
-            FiveGrid.GetBoard(_board);
-            FiveGrid.LabelIdx(_wordDetailArray, BoardMode.FiveXFive);
+            CrosswordGrid.GetBoard(_board, boardMode);
+            CrosswordGrid.LabelIdx(_wordDetailArray, _boardMode);
 
             HorizontalClue.GetClueListView(_wordDetailArray.Where(o => o.WordDirection == Direction.Horizontal).ToArray());
             VerticalClue.GetClueListView(_wordDetailArray.Where(o => o.WordDirection == Direction.Vertical).ToArray());
         }
 
 
-
-
-
         private void SubmitBtn_Click(object sender, RoutedEventArgs e)
         {
-            FiveGrid.GetUserAnswer();
+            CrosswordGrid.GetUserAnswer();
         }
 
         private void NewPuzzleBtn_Click(object sender, RoutedEventArgs e)
         {
             GetNewCrossword();
-            LoadFiveXFiveBoard();
+            LoadFiveXFiveBoard(_boardMode);
         }
 
         private void ResetBtn_Click(object sender, RoutedEventArgs e)
@@ -108,8 +101,8 @@ namespace QuickCrossword
 
         private void AnswerBtn_Click(object sender, RoutedEventArgs e)
         {
-            FiveGrid.GetAnswer();
-            FiveGrid.LabelIdx(_wordDetailArray, BoardMode.FiveXFive);
+            CrosswordGrid.GetAnswer();
+            CrosswordGrid.LabelIdx(_wordDetailArray, _boardMode);
         }
     }
 }
