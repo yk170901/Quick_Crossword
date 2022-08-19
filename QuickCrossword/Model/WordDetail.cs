@@ -11,8 +11,7 @@ namespace QuickCrossword.Model
         public short Index { get; set; }
         public string? Word { get; set; }
         public string? Clue { get; set; }
-        public int X { get; set; }
-        public int Y { get; set; }
+        public List<int> IdxsOnBoard { get; set; }
         public bool Isolated { get; set; }
         public Direction WordDirection { get; set; }
     }

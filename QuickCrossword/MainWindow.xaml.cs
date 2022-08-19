@@ -1,6 +1,7 @@
 ﻿using QuickCrossword.Controller;
 using QuickCrossword.Model;
 using QuickCrossword.Model.Db;
+using QuickCrossword.View;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -25,19 +26,31 @@ namespace QuickCrossword
     public partial class MainWindow : Window
     {
         private byte runCount = 0;
+        private char[] _board;
+        private WordDetail[] _wordDetailArray;
+        private BoardMode _boardMode;
 
         public MainWindow()
         {
             InitializeComponent();
+        }
+        private void Window_Loaded(object sender, RoutedEventArgs e)
+        {
+            _boardMode = BoardMode.FiveXFive;
             runCount++;
+            GetNewCrossword();
+            LoadBoard(_boardMode);
+        }
 
-            CrosswordController.Instance().GetMatrix();
-
+        private void GetNewCrossword()
+        {
+            _board = CrosswordController.Instance().GetBoard(_boardMode);
+            _wordDetailArray = CrosswordController.Instance().GetPlacedWordDetailArray();
         }
 
         private void GridModeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (runCount < 1) return;
+            if (runCount < 1) return; // Review nono
 
             ComboBox comboBox = (ComboBox)sender;
 
@@ -46,42 +59,56 @@ namespace QuickCrossword
             switch (selectedMode)
             {
                 case "5x5":
-                    FiveGrid.Visibility = Visibility.Visible;
-                    SevenGrid.Visibility = Visibility.Collapsed;
-                    TenGrid.Visibility = Visibility.Collapsed;
-
-                    
-                    return;
+                    _boardMode = BoardMode.FiveXFive;
+                    break;
                 case "7x7":
-                    FiveGrid.Visibility = Visibility.Collapsed;
-                    SevenGrid.Visibility = Visibility.Visible;
-                    TenGrid.Visibility = Visibility.Collapsed;
-
-
-                    return;
+                    _boardMode = BoardMode.SevenXSeven;
+                    break;
                 case "10x10":
-                    FiveGrid.Visibility = Visibility.Collapsed;
-                    SevenGrid.Visibility = Visibility.Collapsed;
-                    TenGrid.Visibility = Visibility.Visible;
-
-
-                    return;
+                    _boardMode = BoardMode.TenXTen;
+                    break;
             }
+
+            GetNewCrossword();
+            LoadBoard(_boardMode);
         }
 
-        private void SubmitBtn_Click(object sender, RoutedEventArgs e)
+        private void LoadBoard(BoardMode boardMode)
         {
+            CrosswordGrid.GetBoard(_board, boardMode);
+            CrosswordGrid.LabelIdx(_wordDetailArray);
 
+            HorizontalClue.GetClueListView(_wordDetailArray.Where(o => o.WordDirection == Direction.Horizontal).ToArray());
+            VerticalClue.GetClueListView(_wordDetailArray.Where(o => o.WordDirection == Direction.Vertical).ToArray());
+
+            SubmitBtn.IsEnabled = true;
+            ResetBtn.IsEnabled = true;
         }
 
         private void NewPuzzleBtn_Click(object sender, RoutedEventArgs e)
         {
+            GetNewCrossword();
+            LoadBoard(_boardMode);
+        }
+        private void AnswerBtn_Click(object sender, RoutedEventArgs e)
+        {
+            CrosswordGrid.GetAnswer();
+            CrosswordGrid.LabelIdx(_wordDetailArray);
+            SubmitBtn.IsEnabled = false;
+            ResetBtn.IsEnabled = false;
+        }
 
+        private void SubmitBtn_Click(object sender, RoutedEventArgs e)
+        {
+            CrosswordGrid.GetUserAnswer();
+            CrosswordGrid.LabelIdx(_wordDetailArray);
         }
 
         private void ResetBtn_Click(object sender, RoutedEventArgs e)
         {
-
+            CrosswordGrid.ResetBoard();
+            CrosswordGrid.LabelIdx(_wordDetailArray);
         }
+
     }
 }

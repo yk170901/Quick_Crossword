@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace QuickCrossword.Model
 {
-    public enum GridMode
+    public enum BoardMode
     {
         FiveXFive = 5,
         SevenXSeven = 7,

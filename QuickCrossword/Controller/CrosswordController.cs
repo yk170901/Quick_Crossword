@@ -6,20 +6,22 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
 
 namespace QuickCrossword.Controller
 {
     public class CrosswordController
     {
-        private char[,]? _matrix;
-        private static int GridSize;
+        private char[]? _board;
+        private static int BoardSize;
+        private readonly int BoardTotalSize = BoardSize * BoardSize;
+        private static List<WordDetail> PlacedWordDetail;
 
         private static CrosswordController _instance = null;
         public static CrosswordController Instance()
         {
-            if(_instance == null)
+            if (_instance == null)
                 _instance = new CrosswordController();
-
             return _instance;
         }
 
@@ -27,12 +29,101 @@ namespace QuickCrossword.Controller
         /// <summary>
         /// 
         /// </summary>
-        /// <returns>Completed matrix of crossword</returns>
-        public char[,]? GetMatrix(GridMode gridMode = GridMode.TenXTen)
+        /// <returns></returns>
+        public WordDetail[] GetPlacedWordDetailArray()
         {
-            GridSize = (int)gridMode;
-            CreateMatrix();
-            return _matrix;
+            var sortedList = PlacedWordDetail.OrderBy(o => o.Index);
+            return sortedList.ToArray();
+        }
+
+        // PUBLIC, IMPORTANT
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns>Completed matrix of crossword</returns>
+        public char[] GetBoard(BoardMode boardMode)
+        {
+            BoardSize = (int)boardMode;
+            _board = new char[BoardSize * BoardSize];
+            PlacedWordDetail = new();
+
+            WordAndClue[] WordAndClueArray = GetWACFromDb();
+
+            PutWordsOnBoard(WordAndClueArray);
+            GetRidOfIsolatedWords();
+
+            byte MinimumWordsOnBoard = 0;
+            switch (boardMode)
+            {
+                case BoardMode.FiveXFive:
+                    MinimumWordsOnBoard = 6;
+                    break;
+                case BoardMode.SevenXSeven:
+                    MinimumWordsOnBoard = 10;
+                    break;
+                case BoardMode.TenXTen:
+                    MinimumWordsOnBoard = 18;
+                    break;
+            }
+
+            if(PlacedWordDetail.Count < MinimumWordsOnBoard) GetBoard(boardMode); // 자신 부르기
+
+            ClearIdxForLabeling();
+            LabelIndex();
+
+            return _board;
+        }
+
+        private void ClearIdxForLabeling()
+        {
+            foreach(var item in PlacedWordDetail)
+            {
+                item.Index = -1;
+            }
+        }
+
+        private void LabelIndex()
+        {
+            short label = 1;
+
+            for (int idx = 0; idx < _board.Length; idx++)
+            {
+                if (_board[idx].Equals('\0')) continue;
+
+                var WordsAtIdx = PlacedWordDetail.FindAll(o => o.IdxsOnBoard.Contains(idx));
+
+                bool PlacedIdx = false;
+                foreach (var word in WordsAtIdx)
+                {
+                    if (!word.Index.Equals(-1)) continue;
+                    word.Index = label;
+
+                    PlacedIdx = true;
+                }
+
+                if(PlacedIdx) label++;
+            }
+        }
+
+        private void GetRidOfIsolatedWords()
+        {
+            List<WordDetail> DeleteList = new ();
+
+            foreach(var item in PlacedWordDetail)
+            {
+                if (!item.Isolated) continue;
+
+                foreach (var idx in item.IdxsOnBoard)
+                {
+                    _board[idx] = '\0';
+                }
+                DeleteList.Add(item);
+            }
+
+            foreach(var item in DeleteList)
+            {
+                PlacedWordDetail.Remove(item);
+            }
         }
 
         /// <summary>
@@ -44,8 +135,8 @@ namespace QuickCrossword.Controller
             var WordAndClueList_raw = SqliteDataAccess.LoadWordAndClue();
 
             List<WordAndClue> WordAndClueList = new();
-            // Take 50 random numbers in range of 4 to 214 with NO duplicate
-            var randomNumbers = Enumerable.Range(4, 214).OrderBy(x => rnd.Next()).Take(30).ToArray();
+            // Take 150 random numbers in range of 4 to 214 with NO duplicate
+            var randomNumbers = Enumerable.Range(4, 214).OrderBy(x => rnd.Next()).Take(150).ToArray();
 
             // Add up 50 random WordAndClue to the list with NO duplicate
             foreach (int rndNum in randomNumbers)
@@ -56,562 +147,747 @@ namespace QuickCrossword.Controller
                     WordAndClueList.Add(new WordAndClue() { Id = WAC.Id, Word = WAC.Word, Clue = WAC.Clue });
                 }
             }
-
             return WordAndClueList.ToArray();
         }
 
-        // IMPORTANT
         /// <summary>
-        /// Create matrix of crossword based on data from Sqlite DB
+        /// Check if the board is null as the length of the word
         /// </summary>
-        private void CreateMatrix()
+        private bool CheckIfNullAsWordLengthHorizontally(int boardIdx, int wordLength)
         {
-            // Will contain tons of methods
-            WordAndClue[] WordAndClueArray = GetWACFromDb();
-
-            PutWordsInMatrix(WordAndClueArray);
+            // Horizontal
+            for (int i = 1; i < wordLength; i++)
+            {
+                /* 배열의 오른쪽 끝단에 막히나 (BoardSize의 배수에 해당하나 확인)
+                   boardIdx + i + 1 = 배열은 0부터 시작하니 +1을 해줌
+                   -1 : 지금 확인하는 배열 index의 전의 index 숫자가 끝자락에 다다른 거면 지금 숫자는 그 범위를 넘어가서 문제인 거니 -1을 해줌) */
+                if ((boardIdx + i + 1 - 1) % BoardSize == 0
+                    || (boardIdx + i) >= BoardSize * BoardSize
+                    || !_board[boardIdx + i].Equals('\0')) return false;
+            }
+            return true;
         }
 
+        // Vertical
         /// <summary>
-        /// Check if at least 2 / 3 / 4 cells around a word is clear
+        /// Check if the board is null as the length of the word
         /// </summary>
-        private bool CheckIfWideRangeClear(Direction direction, int x, int y, int wordLength)
+        private bool CheckIfNullAsWordLengthVertically(int boardIdx, int wordLength)
         {
-            int CellsToCheckNum = GridSize / 3;
-            switch (direction)
+            // Horizontal
+            for (int i = boardIdx; i <= boardIdx+((wordLength - 1) * BoardSize); i = i + BoardSize)
             {
-                // 이거 그냥 HaveEmptyRightCells(direction, x, y, CellsToCheckNum); 처럼 x y  변환 안 상태로 넘기고, 받은 쪽에서 로직으로 어케 하는 걸로 했으면 굳이 Switch문 안 써도 됐었다.
-                case Direction.Horizontal:
-                    // x가 시작 좌표, y는 고정 좌표 (x ~ (x + wordLength -1))
-                    bool rightCellsClear_Hor = HaveEmptyRightCells(direction, x + wordLength, y, CellsToCheckNum);
-                    bool leftCellsClear_Hor = HaveEmptyLeftCells(direction, x - 1, y, CellsToCheckNum);
-                    bool UpCellsClear_Hor = HaveEmptyUpCells(direction, x, y - 1, CellsToCheckNum, wordLength);
-                    bool DownCellsClear_Hor = HaveEmptyDownCells(direction, x, y + 1, CellsToCheckNum, wordLength);
-                    bool DiagonalCellsClear_Hor = HaveOneEmptyDiagonalCell(direction, x, y, wordLength);
-
-
-                    if (rightCellsClear_Hor && leftCellsClear_Hor && UpCellsClear_Hor && DownCellsClear_Hor && DiagonalCellsClear_Hor) return true;
-                    
-                    return false;
-
-                case Direction.Vertical:
-                    // x가 고정 좌표, y는 시작 좌표 (y ~ (y + wordLength -1))
-                    bool rightCellsClear_Ver = HaveEmptyRightCells(direction, x + 1, y, CellsToCheckNum, wordLength);
-                    bool leftCellsClear_Ver = HaveEmptyLeftCells(direction, x - 1, y, CellsToCheckNum, wordLength);
-                    bool UpCellsClear_Ver = HaveEmptyUpCells(direction, x, y - 1, CellsToCheckNum, wordLength);
-                    bool DownCellsClear_Ver = HaveEmptyDownCells(direction, x, y + 1, CellsToCheckNum, wordLength);
-                    bool DiagonalCellsClear_Ver = HaveOneEmptyDiagonalCell(direction, x, y, wordLength);
-
-
-                    if (rightCellsClear_Ver && leftCellsClear_Ver && UpCellsClear_Ver && DownCellsClear_Ver && DiagonalCellsClear_Ver) return true;
-
-                    return false;
-
-            }
-
-            return true;
-        }
-
-
-        private bool HaveOneEmptyDiagonalCell(Direction direction, int x, int y, int wordLength)
-        {
-            switch (direction)
-            {
-                case Direction.Horizontal:
-
-                    bool LeftUpDiagonalClear_Hor;
-                    bool RightUpDiagonalClear_Hor;
-                    bool LeftDownDiagonalClear_Hor;
-                    bool RightDownDiagonalClear_Hor;
-
-                    // Left Up
-                    if ((x - 1 < 0) || (y - 1 < 0))
-                    {
-                        LeftUpDiagonalClear_Hor = true;
-                    }
-                    else
-                    {
-                        if (_matrix[y - 1, x - 1].Equals('\0'))
-                        {
-                            LeftUpDiagonalClear_Hor = true;
-                        }
-                        else
-                        {
-                            LeftUpDiagonalClear_Hor = false;
-                        }
-                    }
-
-                    // Right Up
-                    if ((x + wordLength >= GridSize) || (y - 1 < 0))
-                    {
-                        RightUpDiagonalClear_Hor = true;
-                    }
-                    else
-                    {
-                        if (_matrix[y - 1, x + wordLength].Equals('\0'))
-                        {
-                            RightUpDiagonalClear_Hor = true;
-                        }
-                        else
-                        {
-                            RightUpDiagonalClear_Hor = false;
-                        }
-                    }
-
-                    // Left Down
-                    if ((x - 1 < 0) || (y + 1 >= GridSize))
-                    {
-                        LeftDownDiagonalClear_Hor = true;
-                    }
-                    else
-                    {
-                        if (_matrix[y + 1, x - 1].Equals('\0'))
-                        {
-                            LeftDownDiagonalClear_Hor = true;
-                        }
-                        else
-                        {
-                            LeftDownDiagonalClear_Hor = false;
-                        }
-                    }
-
-                    // Right Down
-                    if ((x + wordLength >= GridSize) || (y + 1 >= GridSize))
-                    {
-                        RightDownDiagonalClear_Hor = true;
-                    }
-                    else
-                    {
-                        if (_matrix[y + 1, x + wordLength].Equals('\0'))
-                        {
-                            RightDownDiagonalClear_Hor = true;
-                        }
-                        else
-                        {
-                            RightDownDiagonalClear_Hor = false;
-                        }
-                    }
-
-                    if (LeftUpDiagonalClear_Hor && RightUpDiagonalClear_Hor && LeftDownDiagonalClear_Hor && RightDownDiagonalClear_Hor) return true;
-
-                    return false;
-
-                case Direction.Vertical:
-                    bool LeftUpDiagonalClear_Ver;
-                    bool RightUpDiagonalClear_Ver;
-                    bool LeftDownDiagonalClear_Ver;
-                    bool RightDownDiagonalClear_Ver;
-
-                    // Left Up
-                    if ((x - 1 < 0) || (y - wordLength < 0))
-                    {
-                        LeftUpDiagonalClear_Ver = true;
-                    }
-                    else
-                    {
-                        if (_matrix[y - wordLength -1, x - 1].Equals('\0'))
-                        {
-                            LeftUpDiagonalClear_Ver = true;
-                        }
-                        else
-                        {
-                            LeftUpDiagonalClear_Ver = false;
-                        }
-                    }
-
-                    // Right Up
-                    if ((x + 1 >= GridSize) || (y - wordLength < 0))
-                    {
-                        RightUpDiagonalClear_Ver = true;
-                    }
-                    else
-                    {
-                        if (_matrix[y - wordLength -1, x + 1].Equals('\0'))
-                        {
-                            RightUpDiagonalClear_Ver = true;
-                        }
-                        else
-                        {
-                            RightUpDiagonalClear_Ver = false;
-                        }
-                    }
-
-                    // Left Down
-                    if ((x - 1 < 0) || (y + 1 >= GridSize))
-                    {
-                        LeftDownDiagonalClear_Ver = true;
-                    }
-                    else
-                    {
-                        if (_matrix[y + 1, x - 1].Equals('\0'))
-                        {
-                            LeftDownDiagonalClear_Ver = true;
-                        }
-                        else
-                        {
-                            LeftDownDiagonalClear_Ver = false;
-                        }
-                    }
-
-                    // Right Down
-                    if ((x + 1 >= GridSize) || (y + 1 >= GridSize))
-                    {
-                        RightDownDiagonalClear_Ver = true;
-                    }
-                    else
-                    {
-                        if (_matrix[y + 1, x + 1].Equals('\0'))
-                        {
-                            RightDownDiagonalClear_Ver = true;
-                        }
-                        else
-                        {
-                            RightDownDiagonalClear_Ver = false;
-                        }
-                    }
-
-
-                    if (LeftUpDiagonalClear_Ver && RightUpDiagonalClear_Ver && LeftDownDiagonalClear_Ver && RightDownDiagonalClear_Ver) return true;
-
-                    return false;
-            }
-
-            return true;
-        }
-
-        private bool HaveEmptyUpCells(Direction direction, int x, int y, int CellsToCheckNum, int wordLength = 0)
-        {
-            switch (direction)
-            {
-                case Direction.Horizontal: // Need wordLength
-                    // x가 시작 좌표, y는 고정 좌표 (x ~ (x + wordLength -1))
-                    for (int col = y; col > (y - CellsToCheckNum); col--)     //   >
-                    {
-                        for (int row = x; row < (x + wordLength); row++)      //   <
-                        {
-                            // Grid의 범위를 넘었을 경우
-                            if (col < 0) return true;
-
-                            if (!_matrix[col, row].Equals('\0')) return false;
-                        }
-                    }
-                    return true;
-
-                case Direction.Vertical:
-                    for (int i = y; i > (y - CellsToCheckNum); i--)
-                    {
-                        // Grid의 범위를 넘었을 경우
-                        if (i < 0) return true;
-
-                        if (!_matrix[i, x].Equals('\0')) return false;
-                    }
-                    return true;
-            }
-
-            return true;
-        }
-
-
-        private bool HaveEmptyDownCells(Direction direction, int x, int y, int CellsToCheckNum, int wordLength = 0)
-        {
-            switch (direction)
-            {
-                case Direction.Horizontal: // Need wordLength
-                    // x가 시작 좌표, y는 고정 좌표 (x ~ (x + wordLength -1))
-                    for (int col = y; col < (y + CellsToCheckNum); col++)     //   <
-                    {
-                        for (int row = x; row < (x + wordLength); row++)      //   <
-                        {
-                            // Grid의 범위를 넘었을 경우
-                            if (col >= GridSize) return true;
-
-                            if (!_matrix[col, row].Equals('\0')) return false;
-                        }
-                    }
-                    return true;
-
-                case Direction.Vertical:
-                    for (int i = y; i < (y + CellsToCheckNum); i++)
-                    {
-                        // Grid의 범위를 넘었을 경우
-                        if (i >= GridSize) return true;
-
-                        if (!_matrix[i, x].Equals('\0')) return false;
-                    }
-                    return true;
+                if (i >= BoardSize * BoardSize
+                    || !_board[i].Equals('\0')) return false;
             }
             return true;
         }
 
+        // Vertical
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="xToCheck">The cell at JUST RIGHT to the word</param>
-        private bool HaveEmptyRightCells(Direction direction, int x, int y, int CellsToCheckNum, int wordLength = 0)
+        private bool CheckIfDiagonalClearByOneVertically(int boardIdxInit, int wordLength)
         {
-            switch (direction)
-            {
-                case Direction.Horizontal:
-                    // x가 시작 좌표, y는 고정 좌표 (x ~ (x + wordLength -1))
-                    for (int i = x; i <= (x + CellsToCheckNum); i++)
-                    {
-                        // Grid의 범위를 넘었을 경우
-                        if (i >= GridSize) return true;
+            int LastWordIdx = boardIdxInit + ((wordLength - 1) * BoardSize);
 
-                        if (!_matrix[y, i].Equals('\0')) return false;
-                    }
-                    return true;
+            // Top Left
+            bool TopLeftClear = false;
+            int TopLeftIdx = (boardIdxInit - BoardSize) - 1;
+            if ((TopLeftIdx + 1) % BoardSize == 0 // 0부터 시작하는 배열이니 +1
+                || TopLeftIdx < 0
+                || _board[TopLeftIdx].Equals('\0')) TopLeftClear = true;
 
-                case Direction.Vertical:
-                    // x가 고정 좌표, y는 시작 좌표 (y ~ (y + wordLength -1))
-                    for (int row = x; row < (x + CellsToCheckNum); row++)
-                    {
-                        // Grid의 범위를 넘었을 경우
-                        if (row >= GridSize) return true;
+            if (!TopLeftClear) return false;
 
-                        for (int col = y; col < (y + wordLength); col++)
-                        {
-                            if (!_matrix[col, row].Equals('\0')) return false;
-                        }
-                    }
-                    return true;
-            }
+            // Bottom Left
+            bool BottomLeftClear = false;
+            int BottomLeftIdx = (LastWordIdx + BoardSize) - 1;
+            if ((BottomLeftIdx + 1) % BoardSize == 0 // 0부터 시작하는 배열이니 +1
+                || BottomLeftIdx >= BoardSize * BoardSize
+                || _board[BottomLeftIdx].Equals('\0')) BottomLeftClear = true;
+
+            if (!BottomLeftClear) return false;
+
+            // Top Right
+            bool TopRightClear = false;
+            int TopRightIdx = (boardIdxInit - BoardSize) + 1;
+            if ((TopRightIdx) % BoardSize == 0 // 왜 이건 그냥 해도 되지???
+                || TopRightIdx < 0
+                || _board[TopRightIdx].Equals('\0')) TopRightClear = true;
+
+            if (!TopRightClear) return false;
+
+            bool BottomRightClear = false;
+            // Bottom Right
+            int BottomRightIdx = (LastWordIdx + BoardSize) + 1; // 여기에서 이미 +1을 했기 때문에?
+            if ((BottomRightIdx) % BoardSize == 0 // 왜 이건 그냥 해도 되지???
+                || BottomRightIdx >= BoardSize * BoardSize
+                || _board[BottomRightIdx].Equals('\0')) BottomRightClear = true;
+
+            if (!BottomRightClear) return false;
 
             return true;
         }
 
-        /// <summary>
-        /// 이거 좀 위태하다
-        /// </summary>
-        /// <param name="xToCheck">The cell at JUST LEFT(x-1) to the word</param>
-        private bool HaveEmptyLeftCells(Direction direction, int x, int y, int CellsToCheckNum, int wordLength = 0)
+
+        private bool CheckIfDiagonalClearByOneHorizontally(int boardIdxInit, int wordLength)
         {
-            switch (direction)
-            {
-                case Direction.Horizontal:
-                    // x가 시작 좌표, y는 고정 좌표 ((x-1-(1+CellsToCheckNum)) ~ (x-1))
-                    for (int i = x; i >= (x - CellsToCheckNum); i--)
-                    {
-                        // Grid의 범위를 넘었을 경우
-                        if (i < 0) return true;
+            int LastWordIdx = boardIdxInit + wordLength - 1;
 
-                        if (!_matrix[y, i].Equals('\0')) return false;
-                    }
-                    return true;
+            // Top Left
+            bool TopLeftClear = false;
+            int TopLeftIdx = (boardIdxInit - BoardSize) - 1;
+            if ((TopLeftIdx + 1) % BoardSize == 0 // 0부터 시작하는 배열이니 +1
+                || TopLeftIdx < 0
+                || _board[TopLeftIdx].Equals('\0')) TopLeftClear = true;
 
-                case Direction.Vertical:
-                    // x가 고정 좌표, y는 시작 좌표 (y ~ (y + wordLength -1))
-                    for (int row = x; row > (x - CellsToCheckNum); row--)
-                    {
-                        // Grid의 범위를 넘었을 경우
-                        if (row < 0) return true;
+            if (!TopLeftClear) return false;
 
-                        for (int col = y; col < (y + wordLength); col++)
-                        {
-                            if (!_matrix[col, row].Equals('\0')) return false;
-                        }
-                    }
-                    return true;
-            }
-            return true;
-        }
+            // Bottom Left
+            bool BottomLeftClear = false;
+            int BottomLeftIdx = (boardIdxInit + BoardSize) - 1;
+            if ((BottomLeftIdx + 1) % BoardSize == 0 // 0부터 시작하는 배열이니 +1
+                || BottomLeftIdx >= BoardSize * BoardSize
+                || _board[BottomLeftIdx].Equals('\0')) BottomLeftClear = true;
 
+            if (!BottomLeftClear) return false;
 
-        /// <summary>
-        /// Check if cells around the word by one are clear, so that the word can be placed and linked to another word
-        /// </summary>
-        private bool CheckIfNearbyClear(Direction direction, int x, int y, int wordLength)
-        {
-            switch (direction)
-            {
-                case Direction.Horizontal:
-                    // x가 시작 좌표, y는 고정 좌표 (x ~ (x + wordLength -1))
+            // Top Right
+            bool TopRightClear = false;
+            int TopRightIdx = (LastWordIdx - BoardSize) + 1;
+            if ((TopRightIdx) % BoardSize == 0 // 왜 이건 그냥 해도 되지???
+                || TopRightIdx < 0
+                || _board[TopRightIdx].Equals('\0')) TopRightClear = true;
 
-                    break;
+            if (!TopRightClear) return false;
 
-                case Direction.Vertical:
-                    // x가 고정 좌표, y는 시작 좌표 (y ~ (y + wordLength -1))
+            bool BottomRightClear = false;
+            // Bottom Right
+            int BottomRightIdx = (LastWordIdx + BoardSize) + 1; // 여기에서 이미 +1을 했기 때문에?
+            if ((BottomRightIdx) % BoardSize == 0 // 왜 이건 그냥 해도 되지???
+                || BottomRightIdx >= BoardSize * BoardSize
+                || _board[BottomRightIdx].Equals('\0')) BottomRightClear = true;
 
-                    break;
-            }
+            if (!BottomRightClear) return false;
 
             return true;
         }
 
-        /// <summary>
-        /// To initialize crossword word placement, horizontally place a word by itself with ENOUGH empty cells around it
-        /// </summary>
-        private void HorizontallyPutWordByItself(string word)
+        // 이거 다른 로직 덧붙한 검이
+        private bool CheckIfNearbyClearEnoughVertically(int boardIdxInit, int wordLength)
         {
-            bool NearbyClear;
+            // Horizontal
+            int CellCheckNum = BoardSize / 2;
 
-            for (int y = 0; y < GridSize; y++)
+            int LastWordIdx = boardIdxInit + ((wordLength -1) * BoardSize);
+
+            for (int CurrentBoardIdx = boardIdxInit; CurrentBoardIdx <= LastWordIdx; CurrentBoardIdx = CurrentBoardIdx + BoardSize) // CurrentBoardIdx += BoardSize
             {
-                for (int x = 0; x + word.Length < GridSize; x = x + word.Length)
+                //bool firstWord = CurrentBoardIdx.Equals(boardIdxInit) && CurrentBoardIdx - (i * BoardSize) < 0;
+                //bool lastWord = CurrentBoardIdx.Equals(LastWordIdx) && CurrentBoardIdx + (i * BoardSize) >= (BoardSize * BoardSize);
+
+                //// 조건문이 복잡해지면 한 곳에 모아 정리해둘 수 있다 Review
+                //if (firstWord)
+                //{
+                //    // 비교하려는 Index가 왼쪽 그리드 끝을 넘어서면 굳이 비교 x
+                //    if (CurrentBoardIdx - i % BoardSize == 0
+                //        || CurrentBoardIdx - i < 0)
+                //    {
+                //        goto SkipLeft;
+                //    }
+
+                //    // Left
+                //    if (!_board[CurrentBoardIdx - i].Equals('\0'))
+                //    {
+                //        return false;
+                //    }
+
+                //}
+                //else if (lastWord)
+                //{
+
+                //    // 비교하려는 Index가 오른쪽 그리드 끝을 넘어서면 굳이 비교 x
+                //    if (CurrentBoardIdx + i % BoardSize == 0
+                //        || CurrentBoardIdx + i >= BoardSize * BoardSize)
+                //    {
+                //        goto SkipRight;
+                //    }
+
+                //    // Right
+                //    if (!_board[CurrentBoardIdx + i].Equals('\0'))
+                //    {
+                //        return false;
+                //    }
+                //}
+
+                // currenBoardIdx = 18 25 32
+                for (int i = 1; i < CellCheckNum; i++)
                 {
-                    bool Placalble = true;
-
-                    for (int test = x; test < x + word.Length; test++)
+                    // 첫글자
+                    if (CurrentBoardIdx.Equals(boardIdxInit))
                     {
-                        if (_matrix[y, test] != '\0')
+                        // 비교하려는 Index가 위 그리드 끝을 넘어서면 굳이 비교 x
+                        if (CurrentBoardIdx - (i * BoardSize) < 0)
                         {
-                            Placalble = false;
-                            break;
+                            goto SkipUpOrDown;
+                        }
+
+                        // Up
+                        if (!_board[CurrentBoardIdx - (i * BoardSize)].Equals('\0'))
+                        {
+                            return false;
                         }
                     }
 
-                    if (!Placalble) continue;
+                    // 마지막 글자
+                   if (CurrentBoardIdx.Equals(LastWordIdx))
+                    {
+                        // 비교하려는 Index가 아래 그리드 끝을 넘어서면 굳이 비교 x
+                        if (CurrentBoardIdx + (i * BoardSize) >= (BoardSize * BoardSize))
+                        {
+                            goto SkipUpOrDown;
+                        }
 
-                    NearbyClear = CheckIfWideRangeClear(Direction.Horizontal, x, y, word.Length);
-                    Debug.WriteLine(NearbyClear);
-                    if (!NearbyClear) continue;
+                        // Down
+                        if (!_board[CurrentBoardIdx + (i * BoardSize)].Equals('\0'))
+                        {
+                            return false;
+                        }
+                    }
 
-                    // place word
-                    for (int i = 0, test = x; i < word.Length; i++, test++)
-                        _matrix[y, test] = word[i];
+                SkipUpOrDown:;
 
-                    goto DONE;
+                    // 비교하려는 Index가 왼쪽 그리드 끝을 넘어서면 굳이 비교 x
+                    if (CurrentBoardIdx - i % BoardSize == 0
+                        || CurrentBoardIdx - i < 0)
+                    {
+                        goto SkipLeft;
+                    }
+
+                    // Left
+                    if (!_board[CurrentBoardIdx - i].Equals('\0'))
+                    {
+                        return false;
+                    }
+
+                SkipLeft:;
+
+                    // 비교하려는 Index가 오른쪽 그리드 끝을 넘어서면 굳이 비교 x
+                    if (CurrentBoardIdx + i % BoardSize == 0
+                        || CurrentBoardIdx + i >= BoardSize * BoardSize)
+                    {
+                        goto SkipRight;
+                    }
+
+                    // Right
+                    if (!_board[CurrentBoardIdx + i].Equals('\0'))
+                    {
+                        return false;
+                    }
+
+                SkipRight:;
                 }
             }
-        DONE:;
+            return true;
         }
 
-        /// <summary>
-        /// To initialize crossword word placement, vertically place a word by itself with ENOUGH empty cells around it
-        /// </summary>
-        private void VerticallyPutWordByItself(string word)
+        private bool CheckIfNearbyClearEnoughHorizontally(int boardIdxInit, int wordLength)
         {
-            bool NearbyClear;
+            // Horizontal
+            int CellCheckNum = BoardSize / 2;
 
-            for (int x = 0; x < GridSize; x++)
+            int LastWordIdx = boardIdxInit + wordLength - 1;
+
+            for (int CurrentBoardIdx = boardIdxInit; CurrentBoardIdx <= LastWordIdx; CurrentBoardIdx++)
             {
-                for (int y = 0; y + word.Length < GridSize; y = y + word.Length)
+                for (int i = 1; i < CellCheckNum; i++)
                 {
-                    bool Placalble = true;
-
-                    for (int test = y; test < y + word.Length; test++)
+                    // 첫글자
+                    if (CurrentBoardIdx.Equals(boardIdxInit))
                     {
-                        if (_matrix[test, x] != '\0')
+                        // 비교하려는 Index가 왼쪽 그리드 끝을 넘어서면 굳이 비교 x
+                        if (CurrentBoardIdx - i % BoardSize == 0
+                            || CurrentBoardIdx - i < 0)
                         {
-                            Placalble = false;
-                            break;
+                            goto SkipUpOrDown;
+                        }
+
+                        // Left
+                        if (!_board[CurrentBoardIdx - i].Equals('\0'))
+                        {
+                            return false;
                         }
                     }
 
-                    if (!Placalble) continue;
+                    // 마지막 글자
+                    if (CurrentBoardIdx.Equals(LastWordIdx))
+                    {
+                        // 비교하려는 Index가 오른쪽 그리드 끝을 넘어서면 굳이 비교 x
+                        if (CurrentBoardIdx + i % BoardSize == 0
+                            || CurrentBoardIdx + i >= BoardSize * BoardSize)
+                        {
+                            goto SkipUpOrDown;
+                        }
 
-                    NearbyClear = CheckIfWideRangeClear(Direction.Vertical, x, y, word.Length);
+                        // Right
+                        if (!_board[CurrentBoardIdx + i].Equals('\0'))
+                        {
+                            return false;
+                        }
+                    }
 
-                    if (!NearbyClear) continue;
+                SkipUpOrDown:;
 
-                    // place word
-                    for (int i = 0, test = y; i < word.Length; i++, test++)
-                        _matrix[test, x] = word[i];
+                    // 비교하려는 Index가 위 그리드 끝을 넘어서면 굳이 비교 x
+                    if (CurrentBoardIdx - (i * BoardSize) < 0)
+                    {
+                        goto SkipUp;
+                    }
 
-                    goto DONE;
+                    // Up
+                    if (!_board[CurrentBoardIdx - (i * BoardSize)].Equals('\0'))
+                    {
+                        return false;
+                    }
+
+                SkipUp:;
+
+                    // 비교하려는 Index가 아래 그리드 끝을 넘어서면 굳이 비교 x
+                    if (CurrentBoardIdx + (i * BoardSize) >= (BoardSize * BoardSize))
+                    {
+                        goto SkipDown;
+                    }
+
+                    // Down
+                    if (!_board[CurrentBoardIdx + (i * BoardSize)].Equals('\0'))
+                    {
+                        return false;
+                    }
+                SkipDown:;
                 }
             }
-        DONE:;
+
+            return true;
+
+        }
+        
+        private int GetMatchingCharIndex(char wordChar)
+        {
+            for(int boardIdx = 0; boardIdx < _board.Length; boardIdx++)
+            {
+                if (_board[boardIdx].Equals(wordChar))
+                {
+                    return boardIdx;
+                }
+            }
+            return -1;
         }
 
-
-        private void SetWordsBeforeLinking(string word, int cnt)
+        private bool CheckIfNearbyClearVertically(int[] wordToLinkIdxArray, int matchingCharIdx, string word, int wordIdx)
         {
-            if (cnt % 2 == 0)
+            // 만약 단어를 링크하여 넣는다면 그 새로 넣은 단어의 첫글자가 들어갈 자리
+            int Start = matchingCharIdx - (wordIdx * BoardSize);
+
+            List<int> MyPlace = new();
+
+            for (int i = 0; i < word.Length; i++)
             {
-                HorizontallyPutWordByItself(word);
+                // 첫 글자일 때
+                if (i == 0)
+                {
+                    // Up
+                    bool UpClear = false;
+                    int Up = Start - BoardSize;
+                    if (wordToLinkIdxArray.Contains(Up)
+                        || Up < 0
+                        || _board[Up].Equals('\0')) UpClear = true;
+
+                    if (!UpClear) return false;
+                }
+                // 마지막 글자일 때
+                else if (i == (word.Length - 1))
+                {
+                    // Down 
+                    bool DownClear = false;
+                    int Down = Start + ((i + 1)* BoardSize);
+                    if (wordToLinkIdxArray.Contains(Down)
+                        || Down >= BoardSize * BoardSize
+                        || _board[Down].Equals('\0')) DownClear = true;
+
+                    if (!DownClear) return false;
+                }
+
+                // Left
+                bool LeftClear = false;
+                int Left = Start + (i * BoardSize) - 1;
+                if (wordToLinkIdxArray.Contains(Left)
+                    || MyPlace.Contains(Left)
+                    || Left < 0
+                    || _board[Left].Equals('\0')) LeftClear = true;
+
+                if (!LeftClear) return false;
+
+                // Right
+                bool RightClear = false;
+                int Right = Start + (i * BoardSize) + 1;
+                if (wordToLinkIdxArray.Contains(Right)
+                    || Right >= BoardSize * BoardSize
+                    || _board[Right].Equals('\0')) RightClear = true;
+
+                if (!RightClear) return false;
+
+                MyPlace.Add(Start);
             }
-            else
+            return true;
+
+        }
+
+        private bool CheckIfNearbyClearHorizontally(int[] wordToLinkIdxArray, int matchingCharIdx, string word, int wordIdx)
+        {
+            // 만약 단어를 링크하여 넣는다면 그 새로 넣은 단어의 첫글자가 들어갈 자리
+            int Start = matchingCharIdx - wordIdx;
+
+            for (int i = 0; i < word.Length; i++)
             {
-                VerticallyPutWordByItself(word);
+                // 첫 글자일 때
+                if (i == 0)
+                {
+                    // Left
+                    bool LeftClear = false;
+                    int Left = Start - 1;
+                    if (wordToLinkIdxArray.Contains(Left)
+                        || Left < 0
+                        || _board[Left].Equals('\0')) LeftClear = true;
+
+                    if (!LeftClear) return false;
+                }
+                // 마지막 글자일 때
+                else if (i == (word.Length - 1))
+                {
+                    // Right
+                    bool RightClear = false;
+                    int Right = Start + i + 1;
+                    if (wordToLinkIdxArray.Contains(Right)
+                        || Right >= BoardSize * BoardSize
+                        || _board[Right].Equals('\0')) RightClear = true;
+
+                    if (!RightClear) return false;
+                }
+
+                // Up
+                bool UpClear = false;
+                int Up = Start + i - BoardSize;
+                if (wordToLinkIdxArray.Contains(Up)
+                    || Up < 0
+                    || _board[Up].Equals('\0')) UpClear = true;
+
+                if (!UpClear) return false;
+
+                // Down 
+                bool DownClear = false;
+                int Down = Start + i + BoardSize;
+                if (wordToLinkIdxArray.Contains(Down)
+                    || Down >= BoardSize * BoardSize
+                    || _board[Down].Equals('\0')) DownClear = true;
+
+                if (!DownClear) return false;
+
             }
+            return true;
+        }
+
+        private bool CheckIfFitInBoardVertically(int matchingCharIdx, int wordLength, int wordIdx)
+        {
+            // 만약 단어를 링크하여 넣는다면 그 새로 넣은 단어의 첫글자가 들어갈 자리
+            int Start = matchingCharIdx - (wordIdx * BoardSize);
+            bool ExceededGrid;
+
+            for (int i = 0; i < wordLength; i++)
+            {
+                int CurrentIdx = Start + (i * BoardSize);
+
+                if (CurrentIdx >= BoardSize * BoardSize
+                    || CurrentIdx < 0)
+                {
+                    ExceededGrid = true;
+                }
+                else
+                {
+                    ExceededGrid = false;
+                }
+
+                if (ExceededGrid) return false; // 단어가 그리드를 넘어가면 false 반환
+                else if (CurrentIdx.Equals(matchingCharIdx)) continue; // 매칭 단어면 냅둠
+
+                if (!_board[CurrentIdx].Equals('\0')) // 해당 공간이 비어있지 않으면
+                {
+                    var WordInWay = PlacedWordDetail.FirstOrDefault(o => o.IdxsOnBoard.Contains(CurrentIdx));
+
+                    if (!WordInWay.Isolated) return false; // 다른 단어와 연결된 단어가 자리를 차지하는 거면 얌전히 return false
+
+                    // 아니면 그 단어 지우고 진행
+                    foreach (var idxToDelete in WordInWay.IdxsOnBoard)
+                    {
+                        _board[idxToDelete] = '\0';
+                    }
+
+                    PlacedWordDetail.Remove(WordInWay);
+                }
+            }
+
+            return true;
+        }
+
+        private bool CheckIfFitInBoardHorizontally(int matchingCharIdx, int wordLength, int wordIdx)
+        {
+            // 만약 단어를 링크하여 넣는다면 그 새로 넣은 단어의 첫글자가 들어갈 자리
+            int Start = matchingCharIdx - wordIdx;
+            bool ExceededGrid;
+
+            for (int i = 0; i < wordLength; i++)
+            {
+                int CurrentIdx = Start + i;
+
+                if (CurrentIdx % BoardSize == 0
+                    || CurrentIdx >= BoardSize * BoardSize
+                    || CurrentIdx < 0)
+                {
+                    ExceededGrid = true;
+                }
+                else
+                {
+                    ExceededGrid = false;
+                }
+
+                if (ExceededGrid) return false; // 단어가 그리드를 넘어가면 false 반환
+                else if (CurrentIdx.Equals(matchingCharIdx)) continue; // 매칭 단어면 냅둠
+
+                if (!_board[CurrentIdx].Equals('\0'))
+                {
+                    var WordInWay = PlacedWordDetail.FirstOrDefault(o => o.IdxsOnBoard.Contains(CurrentIdx));
+
+                    if (!WordInWay.Isolated) return false; // 다른 단어와 연결된 단어가 자리를 차지하는 거면 얌전히 return false
+
+                    // 아니면 그 단어 지우고 진행
+                    foreach (var idxToDelete in WordInWay.IdxsOnBoard)
+                    {
+                        _board[idxToDelete] = '\0';
+                    }
+
+                    PlacedWordDetail.Remove(WordInWay);
+                }
+            }
+            return true;
+        }
+
+        private bool CanLinkToWordOnBoard(string word, string clue)
+        {
+            // 글자 단어 하나씩 확인
+            for (int i = 0; i < word.Length; i++)
+            {
+                int MatchingCharIdx = GetMatchingCharIndex(word[i]);
+
+                // 일치하는 글자가 없을 경우
+                if (MatchingCharIdx == -1) continue;
+
+                // 이미 그 글자에 링크된 다른 글자가 또 있을 경우
+                if(PlacedWordDetail.Count(o => o.IdxsOnBoard.Contains(MatchingCharIdx)) > 1) continue;
+
+                var WordToLinkTo = PlacedWordDetail.Find(o => o.IdxsOnBoard.Contains(MatchingCharIdx));
+
+                switch (WordToLinkTo?.WordDirection)
+                {
+                    case Direction.Horizontal:
+
+                        if (!CheckIfFitInBoardVertically(MatchingCharIdx, word.Length, i)) continue;
+                        if (!CheckIfNearbyClearVertically(WordToLinkTo.IdxsOnBoard.ToArray(), MatchingCharIdx, word, i)) continue;
+
+                        List<int> VerticalIdxsOnBoard = new();
+
+                        int VerticalStart = MatchingCharIdx - (i * BoardSize);
+
+                        for (int idx = 0; idx < word.Length; idx++)
+                        {
+                            _board[VerticalStart + (idx * BoardSize)] = word[idx];
+                            VerticalIdxsOnBoard.Add(VerticalStart + (idx * BoardSize));
+                        }
+
+                        PlacedWordDetail.Add(new WordDetail()
+                        {
+                            // Index는 어떻게 할지 생각해보아야겠다.
+                            Word = word,
+                            Clue = clue,
+                            IdxsOnBoard = VerticalIdxsOnBoard,
+                            WordDirection = Direction.Vertical,
+
+                            Isolated = false
+                        });
+
+                        PlacedWordDetail.Find(o => o.Word == WordToLinkTo.Word).Isolated = false;
+
+                        return true;
+
+                    case Direction.Vertical:
+
+                        if (!CheckIfFitInBoardHorizontally(MatchingCharIdx, word.Length, i)) continue;
+
+                        if (!CheckIfNearbyClearHorizontally(WordToLinkTo.IdxsOnBoard.ToArray(), MatchingCharIdx, word, i)) continue;
+
+                        List<int> HorizontalIdxsOnBoard = new();
+
+                        int HorizontalStart = MatchingCharIdx - i;
+
+                        for (int idx = 0; idx < word.Length; idx++)
+                        {
+                            _board[HorizontalStart + idx] = word[idx];
+                            HorizontalIdxsOnBoard.Add(HorizontalStart + idx);
+                        }
+
+                        PlacedWordDetail.Add(new WordDetail()
+                        {
+                            // Index는 어떻게 할지 생각해보아야겠다.
+                            Word = word,
+                            Clue = clue,
+                            IdxsOnBoard = HorizontalIdxsOnBoard,
+                            WordDirection = Direction.Horizontal,
+
+                            Isolated = false
+                        });
+
+                        PlacedWordDetail.Find(o => o.Word == WordToLinkTo.Word).Isolated = false;
+
+                        return true;
+                }
+
+            }
+
+            return false;
         }
 
 
         /// <summary>
-        /// Put random words of WordAndClue into the matrix to see if they generates whole valid matrix with one another
+        /// Put random words from WordAndClue into the _board to see if they generates whole valid a board of 1 dimension with one another
         /// </summary>
-        private void PutWordsInMatrix(WordAndClue[] WordAndClueArray)
+        private void PutWordsOnBoard(WordAndClue[] WordAndClueArray)
         {
-            _matrix = new char[GridSize, GridSize];
-            Direction direction;
-            // int x, y;
-
-            bool NearbyClear = false;
-            bool FitInGrid;
-
             int cnt = -1;
             foreach (WordAndClue WAC in WordAndClueArray)
             {
+                if(WAC == null)
+                {
+                    MessageBox.Show("Unexpected Error Occured. WAC is null");
+                    return;
+                }
+
                 cnt++;
 
-                string? word = WAC.Word;
+                string word = WAC.Word;
 
-                bool CanPlace = false;
-                bool IsMatchingChar = false;
+                bool LinkedToWordOnBoard = CanLinkToWordOnBoard(word, WAC.Clue);
 
-                // 이걸 초반 몇몇 단어 뿐만이 아니라 아예 link가 안 된 단어들은 전부 이렇게 하게 하기
-                if (cnt < GridSize - 3)
-                    SetWordsBeforeLinking(word, cnt);
-
-                //for (int charAt = 0; charAt < word.Length; charAt++)
-                //{
-                //    // 워드 매치 확인 로직. 나중에 하기.
-                //    //for (int i = 0; i < 7; i++)
-                //    //{
-                //    //    for (int j = 0; j < 7; j++)
-                //    //    {
-                //    //        // 가정 1 : 같은 단어가 나왔다
-
-                //    //        if (_matrix[i, j].Equals(word[charAt]))
-                //    //        {
-                //    //            NearbyClear = CheckIfNearbyClear();
-                //    //            FitInGrid = CheckIfFitInGrid();
-
-                //    //            if (!NearbyClear) continue;
-                //    //            if (!FitInGrid) continue;
-
-                //    //            // IsMatchingChar = true;
-                //    //        }
-
-
-                //    //    }
-                //    //}
-
-                //    // 일치하는 Char가 없다면
-                //    if (!IsMatchingChar)
-                //    {
-
-
-                //    }
-
-
-                //}
+                if (!LinkedToWordOnBoard) // Put it at random location
+                {
+                    if (cnt % 2 == 0)
+                    {
+                        PlaceHorizontallyRandom(word, WAC.Clue);
+                    }
+                    else
+                    {
+                        PlaceVerticallyRandom(word, WAC.Clue);
+                    }
+                }
             }
-
-            // grid 형태로 matrix를 보기
-            int dd = 0;
-            foreach (var g in _matrix)
-            {
-                if (g == '\0')
-                    Debug.Write("()");
-                else
-                    Debug.Write(g);
-
-                dd++;
-
-                if(dd % GridSize == 0)
-                    Debug.WriteLine("");
-            }
-
         }
 
-        private WordDetail[] SavePlacedWordDetail()
+        // Vertical
+        /// <summary>
+        /// 
+        /// </summary>
+        private void PlaceVerticallyRandom(string word, string clue)
         {
-            List<WordDetail> PlacedWordDetail = new();
+            for (int boardIdx = 0; boardIdx < _board.Length; boardIdx++)
+            {
+                if (_board[boardIdx].Equals('\0'))
+                {
+                    bool nullAsLength = CheckIfNullAsWordLengthVertically(boardIdx, word.Length);
+                    if (!nullAsLength) continue;
 
-            return PlacedWordDetail.ToArray();
+                    bool nearbyClearEnough = CheckIfNearbyClearEnoughVertically(boardIdx, word.Length);
+                    if (!nearbyClearEnough) continue;
+
+                    bool diagonalClearByOne = CheckIfDiagonalClearByOneVertically(boardIdx, word.Length);
+                    if (!diagonalClearByOne) continue;
+
+                    List<int> IdxsOnBoard = new();
+
+                    for (int wordIdx = 0; wordIdx < word.Length; wordIdx++)
+                    {
+                        _board[boardIdx + (wordIdx * BoardSize)] = word[wordIdx];
+                        IdxsOnBoard.Add(boardIdx + (wordIdx * BoardSize));
+                    }
+
+
+                    PlacedWordDetail.Add(new WordDetail()
+                    {
+                        // Index는 어떻게 할지 생각해보아야겠다.
+                        Word = word,
+                        Clue = clue,
+                        IdxsOnBoard = IdxsOnBoard,
+                        WordDirection = Direction.Vertical,
+
+                        Isolated = true
+                    });
+
+                    return;
+                }
+            }
         }
+
+        // Horizontal
+        /// <summary>
+        /// 
+        /// </summary>
+        private void PlaceHorizontallyRandom(string word, string clue)
+        {
+            for (int boardIdx = 0; boardIdx < _board.Length; boardIdx++)
+            {
+                // 만약 해당 cell이 null이라면 
+                if (_board[boardIdx].Equals('\0'))
+                {
+                    bool nullAsLength = CheckIfNullAsWordLengthHorizontally(boardIdx, word.Length);
+                    if (!nullAsLength) continue;
+
+                    bool nearbyClearEnough = CheckIfNearbyClearEnoughHorizontally(boardIdx, word.Length);
+                    if (!nearbyClearEnough) continue;
+
+                    bool diagonalClearByOne = CheckIfDiagonalClearByOneHorizontally(boardIdx, word.Length);
+                    if (!diagonalClearByOne) continue;
+
+                    List<int> IdxsOnBoard = new();
+
+                    for (int wordIdx = 0; wordIdx < word.Length; wordIdx++)
+                    {
+                        _board[boardIdx + wordIdx] = word[wordIdx];
+                        IdxsOnBoard.Add(boardIdx + wordIdx);
+                    }
+
+                    PlacedWordDetail.Add(new WordDetail()
+                    {
+                        // Index는 어떻게 할지 생각해보아야겠다.
+                        Word = word,
+                        Clue = clue,
+                        IdxsOnBoard = IdxsOnBoard,
+                        WordDirection = Direction.Horizontal,
+
+                        Isolated = true
+                    });
+
+                    return;
+                }
+            }
+        }
+
 
     }
 }
