@@ -50,7 +50,7 @@ namespace QuickCrossword
 
         private void GridModeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (runCount < 1) return;
+            if (runCount < 1) return; // Review nono
 
             ComboBox comboBox = (ComboBox)sender;
 

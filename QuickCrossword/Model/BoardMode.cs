@@ -11,6 +11,5 @@ namespace QuickCrossword.Model
         FiveXFive = 5,
         SevenXSeven = 7,
         TenXTen = 10
-        , Test = 16
     }
 }

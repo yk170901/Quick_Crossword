@@ -41,7 +41,7 @@ namespace QuickCrossword.Controller
         /// 
         /// </summary>
         /// <returns>Completed matrix of crossword</returns>
-        public char[] GetBoard(BoardMode boardMode = BoardMode.TenXTen)
+        public char[] GetBoard(BoardMode boardMode)
         {
             BoardSize = (int)boardMode;
             _board = new char[BoardSize * BoardSize];
@@ -112,8 +112,6 @@ namespace QuickCrossword.Controller
             foreach(var item in PlacedWordDetail)
             {
                 if (!item.Isolated) continue;
-
-                Debug.WriteLine(item.Word + "IS ISOLATED");
 
                 foreach (var idx in item.IdxsOnBoard)
                 {
@@ -286,6 +284,43 @@ namespace QuickCrossword.Controller
 
             for (int CurrentBoardIdx = boardIdxInit; CurrentBoardIdx <= LastWordIdx; CurrentBoardIdx = CurrentBoardIdx + BoardSize) // CurrentBoardIdx += BoardSize
             {
+                //bool firstWord = CurrentBoardIdx.Equals(boardIdxInit) && CurrentBoardIdx - (i * BoardSize) < 0;
+                //bool lastWord = CurrentBoardIdx.Equals(LastWordIdx) && CurrentBoardIdx + (i * BoardSize) >= (BoardSize * BoardSize);
+
+                //// 조건문이 복잡해지면 한 곳에 모아 정리해둘 수 있다 Review
+                //if (firstWord)
+                //{
+                //    // 비교하려는 Index가 왼쪽 그리드 끝을 넘어서면 굳이 비교 x
+                //    if (CurrentBoardIdx - i % BoardSize == 0
+                //        || CurrentBoardIdx - i < 0)
+                //    {
+                //        goto SkipLeft;
+                //    }
+
+                //    // Left
+                //    if (!_board[CurrentBoardIdx - i].Equals('\0'))
+                //    {
+                //        return false;
+                //    }
+
+                //}
+                //else if (lastWord)
+                //{
+
+                //    // 비교하려는 Index가 오른쪽 그리드 끝을 넘어서면 굳이 비교 x
+                //    if (CurrentBoardIdx + i % BoardSize == 0
+                //        || CurrentBoardIdx + i >= BoardSize * BoardSize)
+                //    {
+                //        goto SkipRight;
+                //    }
+
+                //    // Right
+                //    if (!_board[CurrentBoardIdx + i].Equals('\0'))
+                //    {
+                //        return false;
+                //    }
+                //}
+
                 // currenBoardIdx = 18 25 32
                 for (int i = 1; i < CellCheckNum; i++)
                 {
